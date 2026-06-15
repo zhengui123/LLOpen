@@ -50,6 +50,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, cozy atmosphere, warm ambient lighting, detailed background illustration, a bustling Asian durian wholesale market at night, multiple fruit stalls with colorful awnings and string lights, wooden crates filled with durians, hanging lanterns casting warm orange glow, wet ground reflecting lights, market vendors behind stalls, tropical fruit decorations, neon signs in Chinese, steam rising from food vendors, lively market atmosphere, no characters in foreground, vertical composition for mobile screen, warm color palette with yellows oranges and greens
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### S-02 开果台背景
@@ -61,6 +67,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, cozy atmosphere, warm lighting, close-up top-down view of a wooden cutting board work surface for opening durians, clean wooden table texture, a large knife placed on the side, small bowl for durian flesh, scattered durian thorn fragments, warm overhead spotlight creating soft shadows, clean organized workspace, subtle wood grain texture, warm amber lighting, intimate focused atmosphere, vertical composition
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
@@ -78,6 +90,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Jinzheng variety, pale yellowish green shell with short dense blunt thorns, normal healthy appearance, fresh green leaf on top, oval shape, no cracks or special features, clean standard durian look, soft natural lighting, soft shadow, isolated on white background
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### D-02 干尧榴莲 - 普通外表（未开）
@@ -88,6 +106,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Ganyao variety, medium green shell with medium-length sharp thorns, normal healthy appearance, fresh green leaf on top, slightly elongated oval shape, clean standard durian look, soft natural lighting, soft shadow, isolated on white background
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### D-03 猫山王榴莲 - 普通外表（未开）
@@ -97,6 +121,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Musang King variety, rich deep green shell with long sharp thorns, normal healthy appearance, fresh green leaf on top, round plump shape, premium durian appearance, soft natural lighting, soft shadow, isolated on white background
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
@@ -114,6 +144,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Jinzheng variety, POOR APPEARANCE: visible cracks on the shell surface, dull muted pale yellowish green color, wilted brown dried leaf on top, dark spots on shell, uninspiring disappointing look, slightly squashed shape, soft shadow, isolated on white background
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### D-A02 金枕 - 优质外表
@@ -123,6 +159,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Jinzheng variety, GOOD APPEARANCE: bright vibrant pale yellowish green shell, fresh green healthy leaf, subtle golden sheen on shell surface, no cracks, perfect round shape, promising visual cue, warm natural lighting, soft shadow, isolated on white background
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
@@ -134,6 +176,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Jinzheng variety, PREMIUM APPEARANCE: intense golden glow aura around the fruit, shell is perfect golden yellow color, leaf is vivid emerald green with dewdrop sparkles, floating golden sparkle particles, divine legendary quality appearance, flawless shell surface, majestic presentation, dramatic warm golden lighting from above, soft shadow, isolated on white background
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### D-A04 干尧 - 劣质外表
@@ -143,6 +191,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Ganyao variety, POOR APPEARANCE: visible cracks on the shell, dull muted medium green color, wilted brown dried leaf, dark spots on shell, disappointing look, slightly elongated squashed shape, soft shadow, isolated on white background
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
@@ -154,6 +208,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Ganyao variety, GOOD APPEARANCE: bright vibrant medium green shell, fresh green healthy leaf, subtle golden sheen, no cracks, perfect elongated oval shape, promising visual cue, warm natural lighting, soft shadow, isolated on white background
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### D-A06 干尧 - 极品外表
@@ -163,6 +223,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Ganyao variety, PREMIUM APPEARANCE: intense golden glow aura, perfect deep green shell with golden sheen, vivid emerald leaf with dewdrop sparkles, floating golden sparkle particles, flawless surface, majestic presentation, dramatic warm golden lighting from above, soft shadow, isolated on white background
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
@@ -174,6 +240,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Musang King variety, POOR APPEARANCE: visible cracks on the shell, dull muted dark green color, wilted brown dried leaf, dark spots on shell, disappointing look, slightly squashed round shape, soft shadow, isolated on white background
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### D-A08 猫山王 - 优质外表
@@ -184,6 +256,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Musang King variety, GOOD APPEARANCE: bright vibrant deep green shell, fresh green healthy leaf, subtle golden sheen, no cracks, perfect plump round shape, premium quality visual cue, warm natural lighting, soft shadow, isolated on white background
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### D-A09 猫山王 - 极品外表
@@ -193,6 +271,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a whole durian fruit, Musang King variety, PREMIUM APPEARANCE: intense golden glow aura, perfect deep forest green shell with golden sheen, vivid emerald leaf with dewdrop sparkles, floating golden sparkle particles, flawless surface, legendary king quality appearance, dramatic warm golden lighting from above, soft shadow, isolated on white background
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
@@ -210,6 +294,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a durian fruit split open, Jinzheng variety, EMPTY SHELL result: durian shell cracked open showing completely empty interior, no fruit flesh visible anywhere, just hollow brown shell interior, disappointing empty result, sad comedic "nothing inside" visual, soft shadow, isolated on white background
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### D-O02 金枕 - 爆肉（已开）
@@ -219,6 +309,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a durian fruit split open, Jinzheng variety, PERFECT FULL FLESH result: durian shell cracked open revealing 5 compartments all completely filled with plump golden yellow durian flesh, overflowing abundance, rich appetizing golden color, glossy moist texture, exciting amazing visual of maximum yield, dramatic warm spotlight, soft shadow, isolated on white background
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
@@ -230,6 +326,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a durian fruit split open, Ganyao variety, EMPTY SHELL result: durian shell cracked open showing completely empty interior, no fruit flesh visible, just hollow interior, disappointing empty result, soft shadow, isolated on white background
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### D-O04 干尧 - 爆肉（已开）
@@ -239,6 +341,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a durian fruit split open, Ganyao variety, PERFECT FULL FLESH result: durian shell cracked open revealing all compartments completely filled with plump golden yellow durian flesh, overflowing abundance, rich appetizing color, glossy moist texture, exciting visual, soft shadow, isolated on white background
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
@@ -250,6 +358,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a durian fruit split open, Musang King variety, EMPTY SHELL result: durian shell cracked open showing completely empty interior, no fruit flesh visible, just hollow interior, disappointing empty result for premium variety, soft shadow, isolated on white background
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### D-O06 猫山王 - 爆肉（已开）
@@ -259,6 +373,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a durian fruit split open, Musang King variety, PERFECT FULL FLESH result: durian shell cracked open revealing 7 compartments all completely filled with plump creamy golden yellow durian flesh, overflowing abundance, richest appetizing color, glossy moist luxurious texture, ultimate exciting visual of maximum yield from king variety, dramatic warm spotlight, soft shadow, isolated on white background
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
@@ -274,6 +394,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, flat design, simple shapes, clear silhouette, a small icon representing poor durian appearance, cracked egg-like shape in dull brown-green color, sad looking icon, rating 1 star implied, game UI icon for "poor quality"
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### U-02 普通外表图标
@@ -283,6 +409,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, flat design, simple shapes, clear silhouette, a small icon representing normal durian appearance, simple durian silhouette in standard green color, neutral looking icon, rating 2-3 stars implied, game UI icon for "normal quality"
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
@@ -294,6 +426,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, flat design, simple shapes, clear silhouette, a small icon representing good durian appearance, durian silhouette with subtle golden glow in vibrant green color, happy promising icon, rating 4 stars implied, game UI icon for "good quality"
   ```
 
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
+
 ---
 
 ### U-04 极品外表图标
@@ -303,6 +441,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, flat design, simple shapes, clear silhouette, a small icon representing premium legendary durian appearance, durian silhouette with intense golden glow aura and sparkle particles, majestic crown-like appearance, rating 5 stars implied, game UI icon for "premium legendary quality"
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
@@ -314,6 +458,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
   ```
   2D casual mobile game art, cartoon style, vibrant colors, clean lines, UI design, a decorative frame layout for displaying 3 items in a row for game market selection, 3 equally sized rounded rectangle card slots with spacing between them, warm golden brown wooden shelf texture at bottom, subtle market stall awning decoration at top, fairy lights string across the top, "SELECT YOUR DURIAN" header area, vertical mobile game format, transparent background elements, warm inviting marketplace UI aesthetic
   ```
+
+- **Negative Prompt**：
+  ```
+low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft
+  ```
+
 
 ---
 
