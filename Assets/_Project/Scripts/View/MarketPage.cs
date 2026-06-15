@@ -24,6 +24,7 @@ public class MarketPage : MonoBehaviour
     private GameUIRoot _uiRoot;
     private IDisposable _refreshedSub;
     private IDisposable _purchasedSub;
+    private bool _initialized;
 
     [Inject]
     public void Construct(
@@ -38,46 +39,223 @@ public class MarketPage : MonoBehaviour
         _uiRoot = uiRoot;
     }
 
+    private void Start()
+    {
+        Initialize();
+        SubscribeEvents();
+    }
+
     private void OnEnable()
     {
-        _refreshedSub = EventBus.Subscribe<MarketRefreshedEvent>(_ => RefreshCards());
-        _purchasedSub = EventBus.Subscribe<DurianPurchasedEvent>(OnPurchased);
-        BindButtons();
-        RefreshGold();
-        _marketManager.RefreshMarket(VarietyType.JinZheng);
+        if (_initialized)
+        {
+            SubscribeEvents();
+            RefreshGold();
+            RefreshCards();
+        }
     }
 
     private void OnDisable()
     {
+        UnsubscribeEvents();
+    }
+
+    private void SubscribeEvents()
+    {
+        UnsubscribeEvents();
+        _refreshedSub = EventBus.Subscribe<MarketRefreshedEvent>(_ => RefreshCards());
+        _purchasedSub = EventBus.Subscribe<DurianPurchasedEvent>(OnPurchased);
+    }
+
+    private void UnsubscribeEvents()
+    {
         _refreshedSub?.Dispose();
         _purchasedSub?.Dispose();
+        _refreshedSub = null;
+        _purchasedSub = null;
+    }
+
+    private void Initialize()
+    {
+        if (_initialized)
+        {
+            return;
+        }
+
+        EnsureReferences();
+        BindButtons();
+        RefreshGold();
+        _marketManager?.RefreshMarket(VarietyType.JinZheng);
+        _initialized = true;
+    }
+
+    private void EnsureReferences()
+    {
+        if (goldText == null)
+        {
+            goldText = transform.Find("Header/GoldText")?.GetComponent<Text>();
+        }
+
+        if (varietyButtons == null || varietyButtons.Length == 0)
+        {
+            var row = transform.Find("VarietyRow");
+            if (row != null)
+            {
+                varietyButtons = row.GetComponentsInChildren<Button>(true);
+            }
+        }
+
+        if (buyButtons == null || buyButtons.Length == 0)
+        {
+            buyButtons = FindCardButtons("Buy");
+        }
+
+        if (smellButtons == null || smellButtons.Length == 0)
+        {
+            smellButtons = FindCardButtons("Smell");
+        }
+
+        if (durianImages == null || durianImages.Length == 0)
+        {
+            durianImages = FindCardImages("DurianImage");
+        }
+
+        if (priceTexts == null || priceTexts.Length == 0)
+        {
+            priceTexts = FindCardTexts("Price");
+        }
+
+        if (appearanceTexts == null || appearanceTexts.Length == 0)
+        {
+            appearanceTexts = FindCardTexts("Appearance");
+        }
+
+        if (bagButton == null)
+        {
+            bagButton = transform.Find("Footer/Bag")?.GetComponent<Button>();
+        }
+
+        if (shopButton == null)
+        {
+            shopButton = transform.Find("Footer/Shop")?.GetComponent<Button>();
+        }
+    }
+
+    private Button[] FindCardButtons(string childName)
+    {
+        var cardRow = transform.Find("CardRow");
+        if (cardRow == null)
+        {
+            return Array.Empty<Button>();
+        }
+
+        var list = new System.Collections.Generic.List<Button>();
+        for (var i = 0; i < cardRow.childCount; i++)
+        {
+            var btn = cardRow.GetChild(i).Find(childName)?.GetComponent<Button>();
+            if (btn != null)
+            {
+                list.Add(btn);
+            }
+        }
+
+        return list.ToArray();
+    }
+
+    private Image[] FindCardImages(string childName)
+    {
+        var cardRow = transform.Find("CardRow");
+        if (cardRow == null)
+        {
+            return Array.Empty<Image>();
+        }
+
+        var list = new System.Collections.Generic.List<Image>();
+        for (var i = 0; i < cardRow.childCount; i++)
+        {
+            var image = cardRow.GetChild(i).Find(childName)?.GetComponent<Image>();
+            if (image != null)
+            {
+                list.Add(image);
+            }
+        }
+
+        return list.ToArray();
+    }
+
+    private Text[] FindCardTexts(string childName)
+    {
+        var cardRow = transform.Find("CardRow");
+        if (cardRow == null)
+        {
+            return Array.Empty<Text>();
+        }
+
+        var list = new System.Collections.Generic.List<Text>();
+        for (var i = 0; i < cardRow.childCount; i++)
+        {
+            var text = cardRow.GetChild(i).Find(childName)?.GetComponent<Text>();
+            if (text != null)
+            {
+                list.Add(text);
+            }
+        }
+
+        return list.ToArray();
     }
 
     private void BindButtons()
     {
+        if (_marketManager == null || _uiRoot == null)
+        {
+            Debug.LogError("[MarketPage] 依赖注入失败，按钮无法绑定。请确认 GameLifetimeScope 已 Build。");
+            return;
+        }
+
         var varieties = new[] { VarietyType.JinZheng, VarietyType.GanYao, VarietyType.MaoShanWang };
-        for (var i = 0; i < varietyButtons.Length && i < varieties.Length; i++)
+        if (varietyButtons != null)
         {
-            var variety = varieties[i];
-            varietyButtons[i].onClick.RemoveAllListeners();
-            varietyButtons[i].onClick.AddListener(() =>
+            for (var i = 0; i < varietyButtons.Length && i < varieties.Length; i++)
             {
-                _marketManager.RefreshMarket(variety);
-            });
+                if (varietyButtons[i] == null)
+                {
+                    continue;
+                }
+
+                var variety = varieties[i];
+                varietyButtons[i].onClick.RemoveAllListeners();
+                varietyButtons[i].onClick.AddListener(() => _marketManager.RefreshMarket(variety));
+            }
         }
 
-        for (var i = 0; i < buyButtons.Length; i++)
+        if (buyButtons != null)
         {
-            var index = i;
-            buyButtons[i].onClick.RemoveAllListeners();
-            buyButtons[i].onClick.AddListener(() => TryBuy(index));
+            for (var i = 0; i < buyButtons.Length; i++)
+            {
+                if (buyButtons[i] == null)
+                {
+                    continue;
+                }
+
+                var index = i;
+                buyButtons[i].onClick.RemoveAllListeners();
+                buyButtons[i].onClick.AddListener(() => TryBuy(index));
+            }
         }
 
-        for (var i = 0; i < smellButtons.Length; i++)
+        if (smellButtons != null)
         {
-            var index = i;
-            smellButtons[i].onClick.RemoveAllListeners();
-            smellButtons[i].onClick.AddListener(() => TrySmell(index));
+            for (var i = 0; i < smellButtons.Length; i++)
+            {
+                if (smellButtons[i] == null)
+                {
+                    continue;
+                }
+
+                var index = i;
+                smellButtons[i].onClick.RemoveAllListeners();
+                smellButtons[i].onClick.AddListener(() => TrySmell(index));
+            }
         }
 
         if (bagButton != null)
@@ -95,6 +273,11 @@ public class MarketPage : MonoBehaviour
 
     private void TryBuy(int index)
     {
+        if (_marketManager == null)
+        {
+            return;
+        }
+
         var durians = _marketManager.CurrentMarketDurians;
         if (durians == null || index < 0 || index >= durians.Length)
         {
@@ -112,13 +295,18 @@ public class MarketPage : MonoBehaviour
 
     private void OnPurchased(DurianPurchasedEvent e)
     {
-        _bagManager.AddDurian(e.Durian);
+        _bagManager?.AddDurian(e.Durian);
         RefreshGold();
-        _uiRoot.ShowOpen(e.Durian);
+        _uiRoot?.ShowOpen(e.Durian);
     }
 
     private async void TrySmell(int index)
     {
+        if (_marketManager == null || _adManager == null)
+        {
+            return;
+        }
+
         var durians = _marketManager.CurrentMarketDurians;
         if (durians == null || index < 0 || index >= durians.Length)
         {
@@ -154,9 +342,14 @@ public class MarketPage : MonoBehaviour
 
     private void RefreshCards()
     {
+        if (_marketManager == null)
+        {
+            return;
+        }
+
         RefreshGold();
         var durians = _marketManager.CurrentMarketDurians;
-        if (durians == null)
+        if (durians == null || buyButtons == null)
         {
             return;
         }
@@ -169,24 +362,24 @@ public class MarketPage : MonoBehaviour
             }
 
             var durian = durians[i];
-            if (i < durianImages.Length && durianImages[i] != null)
+            if (durianImages != null && i < durianImages.Length && durianImages[i] != null)
             {
                 durianImages[i].color = GetAppearanceColor(durian.appearance);
             }
 
-            if (i < appearanceTexts.Length && appearanceTexts[i] != null)
+            if (appearanceTexts != null && i < appearanceTexts.Length && appearanceTexts[i] != null)
             {
                 appearanceTexts[i].text = durian.appearance.ToString();
             }
 
             var canAfford = PlayerData.Instance.Gold >= durian.finalPrice;
-            if (i < priceTexts.Length && priceTexts[i] != null)
+            if (priceTexts != null && i < priceTexts.Length && priceTexts[i] != null)
             {
                 priceTexts[i].text = $"{durian.finalPrice}";
                 priceTexts[i].color = canAfford ? Color.white : Color.red;
             }
 
-            if (i < buyButtons.Length && buyButtons[i] != null)
+            if (buyButtons[i] != null)
             {
                 buyButtons[i].interactable = canAfford;
             }

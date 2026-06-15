@@ -24,16 +24,18 @@ public class BagPage : MonoBehaviour
         _uiRoot = uiRoot;
     }
 
-    private void Awake()
+    private void Start()
     {
         if (goMarketButton != null)
         {
-            goMarketButton.onClick.AddListener(() => _uiRoot.ShowMarket());
+            goMarketButton.onClick.RemoveAllListeners();
+            goMarketButton.onClick.AddListener(() => _uiRoot?.ShowMarket());
         }
 
         if (backButton != null)
         {
-            backButton.onClick.AddListener(() => _uiRoot.ShowMarket());
+            backButton.onClick.RemoveAllListeners();
+            backButton.onClick.AddListener(() => _uiRoot?.ShowMarket());
         }
     }
 

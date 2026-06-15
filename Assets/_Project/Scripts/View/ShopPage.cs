@@ -22,16 +22,18 @@ public class ShopPage : MonoBehaviour
         _uiRoot = uiRoot;
     }
 
-    private void Awake()
+    private void Start()
     {
         if (upgradeButton != null)
         {
+            upgradeButton.onClick.RemoveAllListeners();
             upgradeButton.onClick.AddListener(OnUpgrade);
         }
 
         if (backButton != null)
         {
-            backButton.onClick.AddListener(() => _uiRoot.ShowMarket());
+            backButton.onClick.RemoveAllListeners();
+            backButton.onClick.AddListener(() => _uiRoot?.ShowMarket());
         }
     }
 

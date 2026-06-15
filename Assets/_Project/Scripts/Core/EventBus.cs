@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UniRx;
+using UnityEngine;
 
 /// <summary>
 /// 泛型事件总线，基于 UniRx Subject 实现发布/订阅。
@@ -16,9 +17,27 @@ public class EventBus
         _instance = this;
     }
 
-    public static void Publish<T>(T eventData) => _instance.PublishInstance(eventData);
+    public static void Publish<T>(T eventData)
+    {
+        if (_instance == null)
+        {
+            Debug.LogError("[EventBus] 尚未初始化，请确认 GameBootstrapper 已执行 Build。");
+            return;
+        }
 
-    public static IDisposable Subscribe<T>(Action<T> handler) => _instance.SubscribeInstance(handler);
+        _instance.PublishInstance(eventData);
+    }
+
+    public static IDisposable Subscribe<T>(Action<T> handler)
+    {
+        if (_instance == null)
+        {
+            Debug.LogError("[EventBus] 尚未初始化，请确认 GameBootstrapper 已执行 Build。");
+            return null;
+        }
+
+        return _instance.SubscribeInstance(handler);
+    }
 
     public void PublishInstance<T>(T eventData)
     {

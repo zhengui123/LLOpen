@@ -30,22 +30,19 @@ public class OpenPage : MonoBehaviour
         _uiRoot = uiRoot;
     }
 
-    private void Awake()
+    private void Start()
     {
         if (reviveButton != null)
         {
             reviveButton.gameObject.SetActive(false);
+            reviveButton.onClick.RemoveAllListeners();
             reviveButton.onClick.AddListener(OnReviveClicked);
         }
 
         if (backButton != null)
         {
-            backButton.onClick.AddListener(() => _uiRoot.ShowMarket());
-        }
-
-        if (durianOpener != null)
-        {
-            durianOpener.SetNavigationTarget(_uiRoot);
+            backButton.onClick.RemoveAllListeners();
+            backButton.onClick.AddListener(() => _uiRoot?.ShowMarket());
         }
     }
 
@@ -54,6 +51,11 @@ public class OpenPage : MonoBehaviour
         _currentDurian = durian;
         _openedSub?.Dispose();
         _openedSub = EventBus.Subscribe<DurianOpenedEvent>(OnDurianOpened);
+
+        if (durianOpener != null)
+        {
+            durianOpener.SetNavigationTarget(_uiRoot);
+        }
 
         if (durianImage != null)
         {

@@ -7,6 +7,12 @@ public class GameLifetimeScope : LifetimeScope
     [SerializeField] private VarietyConfig[] varietyConfigs;
     [SerializeField] private AppearanceConfig[] appearanceConfigs;
     [SerializeField] private ShopConfig shopConfig;
+    [SerializeField] private GameUIRoot uiRoot;
+    [SerializeField] private MarketPage marketPage;
+    [SerializeField] private OpenPage openPage;
+    [SerializeField] private SellPage sellPage;
+    [SerializeField] private BagPage bagPage;
+    [SerializeField] private ShopPage shopPage;
 
     protected override void Awake()
     {
@@ -17,6 +23,7 @@ public class GameLifetimeScope : LifetimeScope
     protected override void Configure(IContainerBuilder builder)
     {
         EnsureConfigsLoaded();
+        EnsureUIReferences();
 
         builder.Register<EventBus>(Lifetime.Singleton);
         builder.Register<AppearanceProbabilitySystem>(Lifetime.Singleton);
@@ -32,12 +39,56 @@ public class GameLifetimeScope : LifetimeScope
         builder.Register<AdManager>(Lifetime.Singleton);
         builder.Register<ShopManager>(Lifetime.Singleton);
 
-        builder.RegisterComponentInHierarchy<GameUIRoot>();
-        builder.RegisterComponentInHierarchy<MarketPage>();
-        builder.RegisterComponentInHierarchy<OpenPage>();
-        builder.RegisterComponentInHierarchy<SellPage>();
-        builder.RegisterComponentInHierarchy<BagPage>();
-        builder.RegisterComponentInHierarchy<ShopPage>();
+        RegisterPage(builder, uiRoot);
+        RegisterPage(builder, marketPage);
+        RegisterPage(builder, openPage);
+        RegisterPage(builder, sellPage);
+        RegisterPage(builder, bagPage);
+        RegisterPage(builder, shopPage);
+
+        // 强制创建 EventBus 单例，否则静态 Publish/Subscribe 时 _instance 为空
+        builder.RegisterBuildCallback(resolver => resolver.Resolve<EventBus>());
+    }
+
+    private static void RegisterPage<T>(IContainerBuilder builder, T page) where T : Component
+    {
+        if (page != null)
+        {
+            builder.RegisterComponent(page);
+        }
+    }
+
+    private void EnsureUIReferences()
+    {
+        if (uiRoot == null)
+        {
+            uiRoot = FindAnyObjectByType<GameUIRoot>(FindObjectsInactive.Include);
+        }
+
+        if (marketPage == null)
+        {
+            marketPage = FindAnyObjectByType<MarketPage>(FindObjectsInactive.Include);
+        }
+
+        if (openPage == null)
+        {
+            openPage = FindAnyObjectByType<OpenPage>(FindObjectsInactive.Include);
+        }
+
+        if (sellPage == null)
+        {
+            sellPage = FindAnyObjectByType<SellPage>(FindObjectsInactive.Include);
+        }
+
+        if (bagPage == null)
+        {
+            bagPage = FindAnyObjectByType<BagPage>(FindObjectsInactive.Include);
+        }
+
+        if (shopPage == null)
+        {
+            shopPage = FindAnyObjectByType<ShopPage>(FindObjectsInactive.Include);
+        }
     }
 
     private void EnsureConfigsLoaded()

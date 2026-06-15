@@ -35,21 +35,24 @@ public class SellPage : MonoBehaviour
         _uiRoot = uiRoot;
     }
 
-    private void Awake()
+    private void Start()
     {
         if (adBonusButton != null)
         {
+            adBonusButton.onClick.RemoveAllListeners();
             adBonusButton.onClick.AddListener(OnAdBonusClicked);
         }
 
         if (confirmButton != null)
         {
+            confirmButton.onClick.RemoveAllListeners();
             confirmButton.onClick.AddListener(OnConfirmSell);
         }
 
         if (backButton != null)
         {
-            backButton.onClick.AddListener(() => _uiRoot.ShowMarket());
+            backButton.onClick.RemoveAllListeners();
+            backButton.onClick.AddListener(() => _uiRoot?.ShowMarket());
         }
     }
 

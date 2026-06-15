@@ -88,6 +88,7 @@ public static class MvpSceneSetupEditor
         var shopPage = BuildShopPage(uiRootGo.transform);
 
         WireUIRoot(uiRoot, marketPage, openPage, sellPage, bagPage, shopPage);
+        WireGameLifetimeScope(gameRoot, uiRoot, marketPage, openPage, sellPage, bagPage, shopPage);
 
         marketPage.SetActive(false);
         openPage.SetActive(false);
@@ -368,6 +369,26 @@ public static class MvpSceneSetupEditor
         return page;
     }
 
+    private static void WireGameLifetimeScope(
+        GameObject gameRoot,
+        GameUIRoot uiRoot,
+        GameObject market,
+        GameObject open,
+        GameObject sell,
+        GameObject bag,
+        GameObject shop)
+    {
+        var scope = gameRoot.GetComponent<GameLifetimeScope>();
+        var so = new SerializedObject(scope);
+        so.FindProperty("uiRoot").objectReferenceValue = uiRoot;
+        so.FindProperty("marketPage").objectReferenceValue = market.GetComponent<MarketPage>();
+        so.FindProperty("openPage").objectReferenceValue = open.GetComponent<OpenPage>();
+        so.FindProperty("sellPage").objectReferenceValue = sell.GetComponent<SellPage>();
+        so.FindProperty("bagPage").objectReferenceValue = bag.GetComponent<BagPage>();
+        so.FindProperty("shopPage").objectReferenceValue = shop.GetComponent<ShopPage>();
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
     private static void WireUIRoot(
         GameUIRoot uiRoot,
         GameObject market,
@@ -468,6 +489,7 @@ public static class MvpSceneSetupEditor
         go.transform.SetParent(parent, false);
         var image = go.AddComponent<Image>();
         image.color = color;
+        image.raycastTarget = false;
         var rect = go.GetComponent<RectTransform>();
         rect.anchorMin = anchorMin;
         rect.anchorMax = anchorMax;
