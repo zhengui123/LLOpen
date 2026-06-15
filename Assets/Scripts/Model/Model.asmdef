@@ -1,0 +1,16 @@
+﻿{
+    "name": "DurianGame.Model",
+    "rootNamespace": "DurianGame.Model",
+    "references": [
+        "GUID:45dde09f3b700b6458963b1fbf4a864b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

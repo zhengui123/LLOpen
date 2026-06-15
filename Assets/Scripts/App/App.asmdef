@@ -1,0 +1,18 @@
+﻿{
+    "name": "DurianGame.App",
+    "rootNamespace": "DurianGame.App",
+    "references": [
+        "GUID:45dde09f3b700b6458963b1fbf4a864b",
+        "GUID:32f975e236502dc458d14d7a12b3f2eb",
+        "GUID:5bd95014f905c1c4cb97c476e9a62ca5"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

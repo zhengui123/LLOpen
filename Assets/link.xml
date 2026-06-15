@@ -1,0 +1,30 @@
+﻿<linker>
+  <assembly fullname="UnityEngine.CoreModule">
+    <type fullname="UnityEngine.GameObject" preserve="all"/>
+    <type fullname="UnityEngine.Transform" preserve="all"/>
+    <type fullname="UnityEngine.MonoBehaviour" preserve="all"/>
+  </assembly>
+  <assembly fullname="VContainer">
+    <type fullname="VContainer.Unity.LifetimeScope" preserve="all"/>
+  </assembly>
+  <assembly fullname="UniTask">
+    <type fullname="Cysharp.Threading.Tasks.UniTask" preserve="all"/>
+  </assembly>
+  <assembly fullname="UniRx">
+    <type fullname="UniRx.ReactiveProperty`1" preserve="all"/>
+  </assembly>
+  <assembly fullname="Newtonsoft.Json">
+    <type fullname="Newtonsoft.Json.JsonConvert" preserve="all"/>
+  </assembly>
+  <assembly fullname="MemoryPack">
+    <type fullname="MemoryPack.MemoryPackSerializer" preserve="all"/>
+  </assembly>
+  <assembly fullname="spine-csharp" preserve="all"/>
+  <assembly fullname="spine-unity">
+    <type fullname="Spine.Unity.SkeletonAnimation" preserve="all"/>
+    <type fullname="Spine.Unity.SkeletonGraphic" preserve="all"/>
+  </assembly>
+  <assembly fullname="Assembly-CSharp">
+    <type fullname="*" preserve="all"/>
+  </assembly>
+</linker>
