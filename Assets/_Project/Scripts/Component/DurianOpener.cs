@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 榴莲揭示：壳裂开动画、房位展示、评级发布，完成后跳转售卖页。
+/// 榴莲揭示：壳裂开动画、房位展示、评级发布；由 OpenPage 控制后续卖出跳转。
 /// </summary>
 public class DurianOpener : MonoBehaviour
 {
@@ -16,16 +16,37 @@ public class DurianOpener : MonoBehaviour
     [SerializeField] private Text ratingText;
     [SerializeField] private float shellOpenDuration = 0.35f;
     [SerializeField] private float roomPopDuration = 0.25f;
-    [SerializeField] private float finishDelay = 0.6f;
     [SerializeField] private float roomSpacing = 1.2f;
 
     private bool _isOpening;
+    private Vector3 _shellOriginalScale = Vector3.one;
     private readonly List<GameObject> _spawnedRooms = new();
-    private GameUIRoot _uiRoot;
 
-    public void SetNavigationTarget(GameUIRoot uiRoot)
+    private void Awake()
     {
-        _uiRoot = uiRoot;
+        if (shellTransform != null)
+        {
+            _shellOriginalScale = shellTransform.localScale;
+        }
+    }
+
+    /// <summary>
+    /// 重置壳体与房位展示，供重新开果或复活后使用。
+    /// </summary>
+    public void ResetVisualState()
+    {
+        _isOpening = false;
+        ClearRooms();
+
+        if (shellTransform != null)
+        {
+            shellTransform.localScale = _shellOriginalScale;
+        }
+
+        if (ratingText != null)
+        {
+            ratingText.text = string.Empty;
+        }
     }
 
     public async UniTask OpenAsync(DurianData durian)
@@ -53,13 +74,6 @@ public class DurianOpener : MonoBehaviour
             Rating = rating,
             YieldRate = durian.yieldRate
         });
-
-        await UniTask.Delay(System.TimeSpan.FromSeconds(finishDelay));
-
-        if (_uiRoot != null)
-        {
-            _uiRoot.ShowSell(durian, rating);
-        }
 
         _isOpening = false;
     }

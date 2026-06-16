@@ -206,7 +206,7 @@ public static class MvpSceneSetupEditor
             new Vector2(0.15f, 0.25f), new Vector2(0.85f, 0.75f));
         var guideText = CreateText(page.transform, "Guide", "在榴莲顶部滑动开果", 26, TextAnchor.MiddleCenter,
             new Vector2(0.1f, 0.18f), new Vector2(0.9f, 0.24f));
-        var estimateText = CreateText(page.transform, "Estimate", "估价约 50 金币", 22, TextAnchor.UpperRight,
+        var estimateText = CreateText(page.transform, "Estimate", "出肉率约 --% · 估价 -- 金币", 22, TextAnchor.UpperRight,
             new Vector2(0.55f, 0.76f), new Vector2(0.95f, 0.92f));
 
         var swipeArea = CreatePanel(page.transform, "SwipeArea", false,
@@ -248,6 +248,8 @@ public static class MvpSceneSetupEditor
 
         var ratingText = CreateText(page.transform, "Rating", "", 24, TextAnchor.MiddleCenter,
             new Vector2(0.1f, 0.05f), new Vector2(0.9f, 0.12f));
+        var sellButton = CreateButton(page.transform, "Sell", "卖出",
+            new Vector2(0.3f, 0.12f), new Vector2(0.7f, 0.18f), new Color(0.85f, 0.55f, 0.1f));
         var reviveButton = CreateButton(page.transform, "Revive", "看广告复活",
             new Vector2(0.3f, 0.02f), new Vector2(0.7f, 0.08f), new Color(0.75f, 0.2f, 0.2f));
         var backButton = CreateButton(page.transform, "Back", "返回市场",
@@ -276,6 +278,7 @@ public static class MvpSceneSetupEditor
         opSo.FindProperty("durianImage").objectReferenceValue = durianImage;
         opSo.FindProperty("guideText").objectReferenceValue = guideText;
         opSo.FindProperty("estimateText").objectReferenceValue = estimateText;
+        opSo.FindProperty("sellButton").objectReferenceValue = sellButton;
         opSo.FindProperty("reviveButton").objectReferenceValue = reviveButton;
         opSo.FindProperty("backButton").objectReferenceValue = backButton;
         opSo.ApplyModifiedPropertiesWithoutUndo();

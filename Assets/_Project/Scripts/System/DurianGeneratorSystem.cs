@@ -58,6 +58,26 @@ public class DurianGeneratorSystem
         return durians;
     }
 
+    /// <summary>
+    /// 复活时重新随机出肉率与房位，保留 id、品种、外观与购买价格。
+    /// </summary>
+    public DurianData RerollOpenResult(DurianData durian)
+    {
+        var varietyConfig = GetVarietyConfig(durian.variety);
+        var appearanceConfig = GetAppearanceConfig(durian.appearance);
+        var probabilities = _probabilitySystem.CalculateFinalProbabilities(
+            varietyConfig.baseWeights,
+            appearanceConfig.probabilityOffsets);
+
+        var grade = _probabilitySystem.SampleYieldGrade(probabilities);
+        var yieldRate = GenerateYieldRate(grade);
+
+        durian.yieldGrade = grade;
+        durian.yieldRate = yieldRate;
+        durian.roomResults = GenerateRoomResults(durian.roomCount, yieldRate);
+        return durian;
+    }
+
     private AppearanceType RandomAppearance()
     {
         var totalWeight = _appearanceConfigs.Sum(c => c.spawnWeight);

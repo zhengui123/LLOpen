@@ -32,4 +32,22 @@ public class BagManager
         EventBus.Publish(new BagUpdatedEvent { Durians = Durians });
         return durian;
     }
+
+    /// <summary>
+    /// 按 id 替换背包中的榴莲（复活重 roll 后同步数据）。
+    /// </summary>
+    public void ReplaceDurian(DurianData durian)
+    {
+        for (var i = 0; i < Durians.Count; i++)
+        {
+            if (Durians[i].id != durian.id)
+            {
+                continue;
+            }
+
+            Durians[i] = durian;
+            EventBus.Publish(new BagUpdatedEvent { Durians = Durians });
+            return;
+        }
+    }
 }
