@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "VarietyConfig", menuName = "榴莲开了/品种配置")]
+[CreateAssetMenu(fileName = "VarietyConfig", menuName = "llopen/品种配置")]
 public class VarietyConfig : ScriptableObject
 {
     public VarietyType type;

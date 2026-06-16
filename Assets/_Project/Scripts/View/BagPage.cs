@@ -1,3 +1,4 @@
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
@@ -59,7 +60,9 @@ public class BagPage : MonoBehaviour
 
         for (var i = cardRoot.childCount - 1; i >= 0; i--)
         {
-            Destroy(cardRoot.GetChild(i).gameObject);
+            var child = cardRoot.GetChild(i);
+            child.DOKill();
+            Destroy(child.gameObject);
         }
 
         for (var i = 0; i < _bagManager.Durians.Count; i++)
@@ -67,6 +70,7 @@ public class BagPage : MonoBehaviour
             var durian = _bagManager.Durians[i];
             var card = Instantiate(cardPrefab, cardRoot);
             card.SetActive(true);
+            card.transform.localScale = Vector3.zero;
 
             var image = card.GetComponentInChildren<Image>();
             if (image != null)
@@ -86,6 +90,24 @@ public class BagPage : MonoBehaviour
                 var captured = durian;
                 button.onClick.AddListener(() => _uiRoot.ShowOpen(captured));
             }
+
+            card.transform
+                .DOScale(1f, 0.28f)
+                .SetDelay(i * 0.05f)
+                .SetEase(Ease.OutBack);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (cardRoot == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < cardRoot.childCount; i++)
+        {
+            cardRoot.GetChild(i).DOKill();
         }
     }
 

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,6 +18,7 @@ public class DurianOpener : MonoBehaviour
     [SerializeField] private float shellOpenDuration = 0.35f;
     [SerializeField] private float roomPopDuration = 0.25f;
     [SerializeField] private float roomSpacing = 1.2f;
+    [SerializeField] private float floatTextDuration = 0.8f;
 
     private bool _isOpening;
     private Vector3 _shellOriginalScale = Vector3.one;
@@ -35,6 +37,7 @@ public class DurianOpener : MonoBehaviour
     /// </summary>
     public void ResetVisualState()
     {
+        KillTweens();
         _isOpening = false;
         ClearRooms();
 
@@ -46,6 +49,12 @@ public class DurianOpener : MonoBehaviour
         if (ratingText != null)
         {
             ratingText.text = string.Empty;
+            ratingText.transform.localScale = Vector3.one;
+            var ratingCanvasGroup = ratingText.GetComponent<CanvasGroup>();
+            if (ratingCanvasGroup != null)
+            {
+                ratingCanvasGroup.alpha = 1f;
+            }
         }
     }
 
@@ -63,10 +72,7 @@ public class DurianOpener : MonoBehaviour
         await RevealRoomsAsync(durian);
 
         var rating = YieldRatingUtil.GetRating(durian.yieldRate);
-        if (ratingText != null)
-        {
-            ratingText.text = $"出肉率 {durian.yieldRate:F1}% · {rating}";
-        }
+        PlayRatingRevealAsync(rating, durian.yieldRate);
 
         EventBus.Publish(new DurianOpenedEvent
         {
@@ -87,7 +93,10 @@ public class DurianOpener : MonoBehaviour
 
         var from = shellTransform.localScale;
         var to = new Vector3(from.x * 1.15f, from.y * 0.82f, from.z);
-        await AnimateScaleAsync(shellTransform, from, to, shellOpenDuration);
+        await shellTransform
+            .DOScale(to, shellOpenDuration)
+            .SetEase(Ease.OutBack)
+            .AsyncWaitForCompletion();
     }
 
     private async UniTask RevealRoomsAsync(DurianData durian)
@@ -99,6 +108,7 @@ public class DurianOpener : MonoBehaviour
 
         var count = durian.roomResults.Length;
         var startX = -(count - 1) * roomSpacing * 0.5f;
+        var revealSequence = DOTween.Sequence();
 
         for (var i = 0; i < count; i++)
         {
@@ -115,10 +125,15 @@ public class DurianOpener : MonoBehaviour
             _spawnedRooms.Add(room);
 
             SpawnFloatText(room.transform.position, hasMeat ? "满房" : "空房");
-            AnimateScaleAsync(room.transform, Vector3.zero, Vector3.one, roomPopDuration).Forget();
+            revealSequence.Join(room.transform
+                .DOScale(Vector3.one, roomPopDuration)
+                .SetEase(Ease.OutBack));
         }
 
-        await UniTask.Delay(System.TimeSpan.FromSeconds(roomPopDuration));
+        if (revealSequence.Duration() > 0f)
+        {
+            await revealSequence.AsyncWaitForCompletion();
+        }
     }
 
     private void SpawnFloatText(Vector3 worldPos, string message)
@@ -138,51 +153,47 @@ public class DurianOpener : MonoBehaviour
             label.color = message == "满房" ? new Color(1f, 0.84f, 0f) : Color.gray;
         }
 
-        FloatAndFadeAsync(textGo).Forget();
-    }
-
-    private async UniTask FloatAndFadeAsync(GameObject textGo)
-    {
-        var rect = textGo.transform;
-        var start = rect.position;
-        var end = start + Vector3.up * 0.8f;
-        var duration = 0.8f;
-        var elapsed = 0f;
-
         var canvasGroup = textGo.GetComponent<CanvasGroup>();
-        while (elapsed < duration)
+        if (canvasGroup == null)
         {
-            elapsed += Time.deltaTime;
-            var t = elapsed / duration;
-            rect.position = Vector3.Lerp(start, end, t);
-            if (canvasGroup != null)
-            {
-                canvasGroup.alpha = 1f - t;
-            }
-
-            await UniTask.Yield();
+            canvasGroup = textGo.AddComponent<CanvasGroup>();
         }
 
-        Destroy(textGo);
+        var endPos = textGo.transform.position + Vector3.up * 0.8f;
+        DOTween.Sequence()
+            .Join(textGo.transform.DOMove(endPos, floatTextDuration).SetEase(Ease.OutCubic))
+            .Join(canvasGroup.DOFade(0f, floatTextDuration))
+            .OnComplete(() => Destroy(textGo));
     }
 
-    private static async UniTask AnimateScaleAsync(Transform target, Vector3 from, Vector3 to, float duration)
+    private void PlayRatingRevealAsync(string rating, float yieldRate)
     {
-        if (target == null)
+        if (ratingText == null)
         {
             return;
         }
 
-        var elapsed = 0f;
-        while (elapsed < duration)
+        ratingText.transform.DOKill();
+        ratingText.text = $"出肉率 {yieldRate:F1}% · {rating}";
+        ratingText.transform.localScale = Vector3.zero;
+
+        var canvasGroup = ratingText.GetComponent<CanvasGroup>();
+        if (canvasGroup == null)
         {
-            elapsed += Time.deltaTime;
-            var t = Mathf.Clamp01(elapsed / duration);
-            target.localScale = Vector3.Lerp(from, to, t);
-            await UniTask.Yield();
+            canvasGroup = ratingText.gameObject.AddComponent<CanvasGroup>();
         }
 
-        target.localScale = to;
+        canvasGroup.alpha = 0f;
+
+        var sequence = DOTween.Sequence();
+        sequence.Join(ratingText.transform.DOScale(1f, 0.35f).SetEase(Ease.OutBack));
+        sequence.Join(canvasGroup.DOFade(1f, 0.3f));
+
+        if (rating == "榴莲之王")
+        {
+            sequence.Append(ratingText.transform
+                .DOPunchScale(Vector3.one * 0.25f, 0.5f, 8, 0.5f));
+        }
     }
 
     private void ClearRooms()
@@ -191,10 +202,39 @@ public class DurianOpener : MonoBehaviour
         {
             if (room != null)
             {
+                room.transform.DOKill();
                 Destroy(room);
             }
         }
 
         _spawnedRooms.Clear();
+    }
+
+    private void KillTweens()
+    {
+        if (shellTransform != null)
+        {
+            shellTransform.DOKill();
+        }
+
+        if (roomsRoot != null)
+        {
+            roomsRoot.DOKill(true);
+        }
+
+        if (ratingText != null)
+        {
+            ratingText.transform.DOKill();
+            var ratingCanvasGroup = ratingText.GetComponent<CanvasGroup>();
+            if (ratingCanvasGroup != null)
+            {
+                ratingCanvasGroup.DOKill();
+            }
+        }
+    }
+
+    private void OnDisable()
+    {
+        KillTweens();
     }
 }

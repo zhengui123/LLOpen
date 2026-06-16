@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "AppearanceConfig", menuName = "榴莲开了/外观配置")]
+[CreateAssetMenu(fileName = "AppearanceConfig", menuName = "llopen/外观配置")]
 public class AppearanceConfig : ScriptableObject
 {
     public AppearanceType type;

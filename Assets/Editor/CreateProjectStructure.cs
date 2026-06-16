@@ -7,11 +7,11 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// 一键创建《榴莲开了》项目目录、link.xml、程序集定义与启动场景。
+/// 一键创建《llopen》项目目录、link.xml、程序集定义与启动场景。
 /// </summary>
 public static class CreateProjectStructure
 {
-    private const string MenuPath = "Tools/榴莲开了/Create Project Structure";
+    private const string MenuPath = "Tools/llopen/Create Project Structure";
 
     private static readonly string[] FolderPaths =
     {

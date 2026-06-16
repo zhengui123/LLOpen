@@ -1,4 +1,4 @@
-# 《榴莲开了 MVP》- Unity项目架构文档
+# 《llopen MVP》- Unity项目架构文档
 
 > 版本：MVP v1.0 | 日期：2026-06-15
 > 原则：**只保留MVP必需的系统，砍掉加工、顾客竞价、Spine**
@@ -187,7 +187,7 @@ public struct DurianData
 ### 4.3 VarietyData.cs（ScriptableObject）
 
 ```csharp
-[CreateAssetMenu(fileName = "DurianConfig", menuName = "榴莲开了/品种配置")]
+[CreateAssetMenu(fileName = "DurianConfig", menuName = "llopen/品种配置")]
 public class VarietyConfig : ScriptableObject
 {
     public VarietyType type;
@@ -203,7 +203,7 @@ public class VarietyConfig : ScriptableObject
 ### 4.4 外观配置（ScriptableObject）
 
 ```csharp
-[CreateAssetMenu(fileName = "AppearanceConfig", menuName = "榴莲开了/外观配置")]
+[CreateAssetMenu(fileName = "AppearanceConfig", menuName = "llopen/外观配置")]
 public class AppearanceConfig : ScriptableObject
 {
     public AppearanceType type;

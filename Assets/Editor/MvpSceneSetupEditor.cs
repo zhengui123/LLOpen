@@ -16,8 +16,9 @@ public static class MvpSceneSetupEditor
     private const string MainScenePath = "Assets/Scenes/Main.unity";
     private const string LaunchScenePath = "Assets/Scenes/Launch.unity";
     private const string PrefabDir = "Assets/_Project/Prefabs/UI";
+    private const string DefaultFontPath = "Assets/Font/GeourceAltCHT-Medium.ttf";
 
-    [MenuItem("Tools/榴莲开了/Setup MVP Scene")]
+    [MenuItem("Tools/llopen/Setup MVP Scene")]
     public static void SetupMvpScene()
     {
         EnsureFolder(PrefabDir);
@@ -298,6 +299,8 @@ public static class MvpSceneSetupEditor
             new Vector2(0.1f, 0.55f), new Vector2(0.9f, 0.65f));
         var goldAnim = CreateText(page.transform, "GoldAnim", "", 32, TextAnchor.MiddleCenter,
             new Vector2(0.2f, 0.4f), new Vector2(0.8f, 0.5f));
+        var goldCanvasGroup = goldAnim.gameObject.AddComponent<CanvasGroup>();
+        goldCanvasGroup.alpha = 0f;
         var adBtn = CreateButton(page.transform, "AdBonus", "看广告加价+20%",
             new Vector2(0.15f, 0.25f), new Vector2(0.85f, 0.35f), new Color(0.2f, 0.5f, 0.8f));
         var confirmBtn = CreateButton(page.transform, "Confirm", "确认卖出",
@@ -309,6 +312,7 @@ public static class MvpSceneSetupEditor
         so.FindProperty("summaryText").objectReferenceValue = summary;
         so.FindProperty("priceText").objectReferenceValue = price;
         so.FindProperty("goldText").objectReferenceValue = goldAnim;
+        so.FindProperty("goldCanvasGroup").objectReferenceValue = goldCanvasGroup;
         so.FindProperty("adBonusButton").objectReferenceValue = adBtn;
         so.FindProperty("confirmButton").objectReferenceValue = confirmBtn;
         so.FindProperty("backButton").objectReferenceValue = backBtn;
@@ -483,7 +487,13 @@ public static class MvpSceneSetupEditor
 
     private static Font GetDefaultFont()
     {
-        return Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        var font = AssetDatabase.LoadAssetAtPath<Font>(DefaultFontPath);
+        if (font == null)
+        {
+            Debug.LogError($"[MvpSceneSetup] 未找到字体：{DefaultFontPath}，请确认资源存在。");
+        }
+
+        return font;
     }
 
     private static Image CreateImage(Transform parent, string name, Color color, Vector2 anchorMin, Vector2 anchorMax)

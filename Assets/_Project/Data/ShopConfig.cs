@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "ShopConfig", menuName = "榴莲开了/商店配置")]
+[CreateAssetMenu(fileName = "ShopConfig", menuName = "llopen/商店配置")]
 public class ShopConfig : ScriptableObject
 {
     public int[] upgradeCosts = { 0, 500 };

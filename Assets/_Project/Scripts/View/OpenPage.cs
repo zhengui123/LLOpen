@@ -1,4 +1,5 @@
 using System;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
@@ -25,6 +26,7 @@ public class OpenPage : MonoBehaviour
     private DurianData _currentDurian;
     private string _lastRating;
     private IDisposable _openedSub;
+    private Tween _guidePulseTween;
 
     [Inject]
     public void Construct(
@@ -66,23 +68,28 @@ public class OpenPage : MonoBehaviour
 
     public void Show(DurianData durian)
     {
+        KillTweens();
         _currentDurian = durian;
         _lastRating = string.Empty;
         _openedSub?.Dispose();
         _openedSub = EventBus.Subscribe<DurianOpenedEvent>(OnDurianOpened);
 
         durianOpener?.ResetVisualState();
-        SetActionButtonsVisible(sellVisible: false, reviveVisible: false);
+        HideActionButtons();
 
         if (durianImage != null)
         {
             durianImage.color = GetAppearanceColor(durian.appearance);
+            durianImage.transform.DOKill();
+            durianImage.transform.localScale = Vector3.one * 0.92f;
+            durianImage.transform.DOScale(1f, 0.35f).SetEase(Ease.OutBack);
         }
 
         if (guideText != null)
         {
             guideText.gameObject.SetActive(true);
             guideText.text = "在榴莲顶部滑动开果";
+            StartGuidePulse();
         }
 
         RefreshEstimateText();
@@ -106,10 +113,15 @@ public class OpenPage : MonoBehaviour
 
         if (guideText != null)
         {
+            StopGuidePulse();
             guideText.gameObject.SetActive(false);
         }
 
-        SetActionButtonsVisible(sellVisible: true, reviveVisible: e.Rating == "空壳");
+        ShowButtonPop(sellButton);
+        if (e.Rating == "空壳")
+        {
+            ShowButtonPop(reviveButton);
+        }
     }
 
     private void OnSellClicked()
@@ -130,12 +142,13 @@ public class OpenPage : MonoBehaviour
 
         durianOpener?.ResetVisualState();
         RefreshEstimateText();
-        SetActionButtonsVisible(sellVisible: false, reviveVisible: false);
+        HideActionButtons();
 
         if (guideText != null)
         {
             guideText.gameObject.SetActive(true);
             guideText.text = "在榴莲顶部滑动开果";
+            StartGuidePulse();
         }
 
         if (knifeTool != null)
@@ -155,22 +168,84 @@ public class OpenPage : MonoBehaviour
         estimateText.text = $"出肉率约 {_currentDurian.yieldRate:F1}% · 估价 {price} 金币";
     }
 
-    private void SetActionButtonsVisible(bool sellVisible, bool reviveVisible)
+    private void HideActionButtons()
     {
+        KillButtonTweens(sellButton);
+        KillButtonTweens(reviveButton);
+
         if (sellButton != null)
         {
-            sellButton.gameObject.SetActive(sellVisible);
+            sellButton.gameObject.SetActive(false);
         }
 
         if (reviveButton != null)
         {
-            reviveButton.gameObject.SetActive(reviveVisible);
+            reviveButton.gameObject.SetActive(false);
+        }
+    }
+
+    private static void ShowButtonPop(Button button)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        button.gameObject.SetActive(true);
+        var rect = button.transform;
+        rect.DOKill();
+        rect.localScale = Vector3.zero;
+        rect.DOScale(1f, 0.35f).SetEase(Ease.OutBack);
+    }
+
+    private void StartGuidePulse()
+    {
+        if (guideText == null)
+        {
+            return;
+        }
+
+        StopGuidePulse();
+        guideText.transform.localScale = Vector3.one;
+        _guidePulseTween = guideText.transform
+            .DOScale(1.06f, 0.85f)
+            .SetEase(Ease.InOutSine)
+            .SetLoops(-1, LoopType.Yoyo);
+    }
+
+    private void StopGuidePulse()
+    {
+        _guidePulseTween?.Kill();
+        _guidePulseTween = null;
+
+        if (guideText != null)
+        {
+            guideText.transform.DOKill();
+            guideText.transform.localScale = Vector3.one;
+        }
+    }
+
+    private static void KillButtonTweens(Button button)
+    {
+        button?.transform.DOKill();
+    }
+
+    private void KillTweens()
+    {
+        StopGuidePulse();
+        KillButtonTweens(sellButton);
+        KillButtonTweens(reviveButton);
+
+        if (durianImage != null)
+        {
+            durianImage.transform.DOKill();
         }
     }
 
     private void OnDisable()
     {
         _openedSub?.Dispose();
+        KillTweens();
     }
 
     private static Color GetAppearanceColor(AppearanceType appearance)

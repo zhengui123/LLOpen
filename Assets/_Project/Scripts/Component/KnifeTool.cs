@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 
 /// <summary>
@@ -18,6 +19,7 @@ public class KnifeTool : MonoBehaviour
     [SerializeField] private float swipeThresholdRatio = 0.8f;
     [SerializeField] private float shakeDuration = 0.15f;
     [SerializeField] private float shakeMagnitude = 0.08f;
+    [SerializeField] private float crackPulseDuration = 0.12f;
 
     private readonly List<Vector3> _crackPoints = new();
     private DurianData _currentDurian;
@@ -25,6 +27,7 @@ public class KnifeTool : MonoBehaviour
     private bool _hasOpened;
     private Vector3 _swipeStartWorld;
     private float _swipeDistance;
+    private float _defaultLineWidth = 0.05f;
 
     private void Awake()
     {
@@ -38,11 +41,17 @@ public class KnifeTool : MonoBehaviour
             targetCamera = Camera.main;
         }
 
+        if (crackLine != null)
+        {
+            _defaultLineWidth = crackLine.startWidth;
+        }
+
         ResetCrackLine();
     }
 
     public void Setup(DurianData durian)
     {
+        KillTweens();
         _currentDurian = durian;
         _hasOpened = false;
         _isSwiping = false;
@@ -154,29 +163,41 @@ public class KnifeTool : MonoBehaviour
             audioSource.PlayOneShot(crackClip);
         }
 
-        await ShakeCameraAsync();
+        PlayCrackLinePulse();
+
+        if (targetCamera != null)
+        {
+            await targetCamera.transform
+                .DOShakePosition(shakeDuration, new Vector3(shakeMagnitude, shakeMagnitude, 0f), 20, 90f, false, true)
+                .AsyncWaitForCompletion();
+        }
     }
 
-    private async UniTask ShakeCameraAsync()
+    private void PlayCrackLinePulse()
     {
-        if (targetCamera == null)
+        if (crackLine == null)
         {
             return;
         }
 
-        var origin = targetCamera.transform.localPosition;
-        var elapsed = 0f;
-
-        while (elapsed < shakeDuration)
-        {
-            elapsed += Time.deltaTime;
-            var offset = Random.insideUnitSphere * shakeMagnitude;
-            offset.z = 0f;
-            targetCamera.transform.localPosition = origin + offset;
-            await UniTask.Yield();
-        }
-
-        targetCamera.transform.localPosition = origin;
+        crackLine.DOKill();
+        var peakWidth = _defaultLineWidth * 2.5f;
+        DOTween.To(
+                () => crackLine.startWidth,
+                width =>
+                {
+                    crackLine.startWidth = width;
+                    crackLine.endWidth = width;
+                },
+                peakWidth,
+                crackPulseDuration)
+            .SetLoops(2, LoopType.Yoyo)
+            .SetEase(Ease.OutQuad)
+            .OnComplete(() =>
+            {
+                crackLine.startWidth = _defaultLineWidth;
+                crackLine.endWidth = _defaultLineWidth;
+            });
     }
 
     private bool IsInSwipeArea(Vector2 screenPosition)
@@ -221,6 +242,26 @@ public class KnifeTool : MonoBehaviour
         if (crackLine != null)
         {
             crackLine.positionCount = 0;
+            crackLine.startWidth = _defaultLineWidth;
+            crackLine.endWidth = _defaultLineWidth;
         }
+    }
+
+    private void KillTweens()
+    {
+        if (targetCamera != null)
+        {
+            targetCamera.transform.DOKill();
+        }
+
+        if (crackLine != null)
+        {
+            crackLine.DOKill();
+        }
+    }
+
+    private void OnDisable()
+    {
+        KillTweens();
     }
 }

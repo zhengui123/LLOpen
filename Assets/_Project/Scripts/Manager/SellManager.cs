@@ -35,6 +35,14 @@ public class SellManager
         _temporaryAdBonus = 0.2f;
     }
 
+    /// <summary>
+    /// 清除广告临时加成（离开售卖页未卖出时调用）。
+    /// </summary>
+    public void ClearTemporaryBonus()
+    {
+        _temporaryAdBonus = 0f;
+    }
+
     private static float GetYieldGradePrice(YieldGrade grade)
     {
         return grade switch

@@ -1,4 +1,5 @@
 using System;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
@@ -25,6 +26,7 @@ public class MarketPage : MonoBehaviour
     private IDisposable _refreshedSub;
     private IDisposable _purchasedSub;
     private bool _initialized;
+    private int _lastGold = -1;
 
     [Inject]
     public void Construct(
@@ -58,6 +60,7 @@ public class MarketPage : MonoBehaviour
     private void OnDisable()
     {
         UnsubscribeEvents();
+        KillTweens();
     }
 
     private void SubscribeEvents()
@@ -287,6 +290,7 @@ public class MarketPage : MonoBehaviour
         var durian = durians[index];
         if (PlayerData.Instance.Gold < durian.finalPrice)
         {
+            PlayInsufficientGoldFeedback(index);
             return;
         }
 
@@ -328,16 +332,46 @@ public class MarketPage : MonoBehaviour
 
         if (appearanceTexts != null && index < appearanceTexts.Length && appearanceTexts[index] != null)
         {
-            appearanceTexts[index].text = hint;
+            var hintText = appearanceTexts[index];
+            hintText.text = hint;
+            hintText.transform.DOKill();
+            hintText.transform.DOPunchScale(Vector3.one * 0.12f, 0.35f, 4, 0.5f);
+        }
+    }
+
+    private void PlayInsufficientGoldFeedback(int index)
+    {
+        if (priceTexts != null && index < priceTexts.Length && priceTexts[index] != null)
+        {
+            var priceLabel = priceTexts[index];
+            priceLabel.DOKill();
+            priceLabel.color = Color.red;
+            priceLabel.transform.DOPunchScale(Vector3.one * 0.2f, 0.35f, 6, 0.5f);
+            priceLabel.DOColor(Color.red, 0.12f).SetLoops(4, LoopType.Yoyo);
+        }
+
+        if (goldText != null)
+        {
+            goldText.rectTransform.DOKill();
+            goldText.rectTransform.DOShakeAnchorPos(0.35f, new Vector2(12f, 0f), 20, 90f, false, true);
         }
     }
 
     private void RefreshGold()
     {
+        var gold = PlayerData.Instance.Gold;
         if (goldText != null)
         {
-            goldText.text = $"金币 {PlayerData.Instance.Gold}";
+            goldText.text = $"金币 {gold}";
+
+            if (_lastGold >= 0 && gold != _lastGold)
+            {
+                goldText.transform.DOKill();
+                goldText.transform.DOPunchScale(Vector3.one * 0.15f, 0.35f, 5, 0.5f);
+            }
         }
+
+        _lastGold = gold;
     }
 
     private void RefreshCards()
@@ -382,6 +416,66 @@ public class MarketPage : MonoBehaviour
             if (buyButtons[i] != null)
             {
                 buyButtons[i].interactable = canAfford;
+            }
+        }
+
+        PlayCardRefreshAnimation();
+    }
+
+    private void PlayCardRefreshAnimation()
+    {
+        var cardRow = transform.Find("CardRow");
+        if (cardRow == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < cardRow.childCount; i++)
+        {
+            var card = cardRow.GetChild(i);
+            card.DOKill();
+            card.localScale = Vector3.one * 0.85f;
+            card.DOScale(1f, 0.28f)
+                .SetDelay(i * 0.06f)
+                .SetEase(Ease.OutBack);
+        }
+    }
+
+    private void KillTweens()
+    {
+        if (goldText != null)
+        {
+            goldText.rectTransform.DOKill();
+        }
+
+        if (priceTexts != null)
+        {
+            foreach (var price in priceTexts)
+            {
+                if (price == null)
+                {
+                    continue;
+                }
+
+                price.DOKill();
+                price.transform.DOKill();
+            }
+        }
+
+        if (appearanceTexts != null)
+        {
+            foreach (var text in appearanceTexts)
+            {
+                text?.transform.DOKill();
+            }
+        }
+
+        var cardRow = transform.Find("CardRow");
+        if (cardRow != null)
+        {
+            for (var i = 0; i < cardRow.childCount; i++)
+            {
+                cardRow.GetChild(i).DOKill();
             }
         }
     }

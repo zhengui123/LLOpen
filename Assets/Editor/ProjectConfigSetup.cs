@@ -81,7 +81,7 @@ public static class ProjectConfigSetup
     private static void ApplyPlayerSettings()
     {
         PlayerSettings.companyName = "DurianGame";
-        PlayerSettings.productName = "榴莲开了";
+        PlayerSettings.productName = "llopen";
         PlayerSettings.colorSpace = ColorSpace.Linear;
         PlayerSettings.SetMobileMTRendering(BuildTargetGroup.Android, true);
         PlayerSettings.SetMobileMTRendering(BuildTargetGroup.iOS, true);
