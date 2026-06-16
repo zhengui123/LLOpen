@@ -1,3 +1,4 @@
+using System;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,6 +18,7 @@ public class BagPage : MonoBehaviour
 
     private BagManager _bagManager;
     private GameUIRoot _uiRoot;
+    private IDisposable _bagUpdatedSub;
 
     [Inject]
     public void Construct(BagManager bagManager, GameUIRoot uiRoot)
@@ -40,8 +42,26 @@ public class BagPage : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        _bagUpdatedSub?.Dispose();
+        _bagUpdatedSub = EventBus.Subscribe<BagUpdatedEvent>(_ => Refresh());
+    }
+
+    private void OnDisable()
+    {
+        _bagUpdatedSub?.Dispose();
+        _bagUpdatedSub = null;
+        KillCardTweens();
+    }
+
     public void Refresh()
     {
+        if (_bagManager == null)
+        {
+            return;
+        }
+
         if (capacityText != null)
         {
             capacityText.text = $"{_bagManager.Durians.Count}/{_bagManager.MaxCapacity}";
@@ -53,52 +73,73 @@ public class BagPage : MonoBehaviour
             emptyHint.SetActive(isEmpty);
         }
 
+        if (goMarketButton != null)
+        {
+            goMarketButton.gameObject.SetActive(isEmpty);
+        }
+
         if (cardRoot == null || cardPrefab == null)
         {
             return;
         }
 
+        KillCardTweens();
+
         for (var i = cardRoot.childCount - 1; i >= 0; i--)
         {
-            var child = cardRoot.GetChild(i);
-            child.DOKill();
-            Destroy(child.gameObject);
+            Destroy(cardRoot.GetChild(i).gameObject);
         }
 
         for (var i = 0; i < _bagManager.Durians.Count; i++)
         {
-            var durian = _bagManager.Durians[i];
-            var card = Instantiate(cardPrefab, cardRoot);
-            card.SetActive(true);
-            card.transform.localScale = Vector3.zero;
-
-            var image = card.GetComponentInChildren<Image>();
-            if (image != null)
-            {
-                image.color = GetAppearanceColor(durian.appearance);
-            }
-
-            var label = card.GetComponentInChildren<Text>();
-            if (label != null)
-            {
-                label.text = $"{durian.variety}\n{durian.appearance}";
-            }
-
-            var button = card.GetComponent<Button>();
-            if (button != null)
-            {
-                var captured = durian;
-                button.onClick.AddListener(() => _uiRoot.ShowOpen(captured));
-            }
-
-            card.transform
-                .DOScale(1f, 0.28f)
-                .SetDelay(i * 0.05f)
-                .SetEase(Ease.OutBack);
+            SpawnCard(_bagManager.Durians[i], i);
         }
     }
 
-    private void OnDisable()
+    private void SpawnCard(DurianData durian, int index)
+    {
+        var card = Instantiate(cardPrefab, cardRoot);
+        card.SetActive(true);
+        card.transform.localScale = Vector3.zero;
+
+        var blockImage = card.transform.Find("Block")?.GetComponent<Image>();
+        if (blockImage != null)
+        {
+            blockImage.color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
+        }
+
+        var varietyText = card.transform.Find("VarietyText")?.GetComponent<Text>();
+        if (varietyText != null)
+        {
+            varietyText.text = DurianDisplayUtil.GetVarietyName(durian.variety);
+        }
+
+        var infoText = card.transform.Find("InfoText")?.GetComponent<Text>();
+        if (infoText != null)
+        {
+            infoText.text = $"{DurianDisplayUtil.GetAppearanceName(durian.appearance)} · {DurianDisplayUtil.GetBagBriefInfo(durian)}";
+        }
+
+        var legacyLabel = card.transform.Find("Label")?.GetComponent<Text>();
+        if (legacyLabel != null && varietyText == null && infoText == null)
+        {
+            legacyLabel.text = $"{DurianDisplayUtil.GetBagCardLabel(durian)}\n{DurianDisplayUtil.GetBagBriefInfo(durian)}";
+        }
+
+        var button = card.GetComponent<Button>();
+        if (button != null)
+        {
+            var captured = durian;
+            button.onClick.AddListener(() => _uiRoot.ShowOpen(captured));
+        }
+
+        card.transform
+            .DOScale(1f, 0.28f)
+            .SetDelay(index * 0.05f)
+            .SetEase(Ease.OutBack);
+    }
+
+    private void KillCardTweens()
     {
         if (cardRoot == null)
         {
@@ -109,16 +150,5 @@ public class BagPage : MonoBehaviour
         {
             cardRoot.GetChild(i).DOKill();
         }
-    }
-
-    private static Color GetAppearanceColor(AppearanceType appearance)
-    {
-        return appearance switch
-        {
-            AppearanceType.Poor => new Color(0.45f, 0.35f, 0.25f),
-            AppearanceType.Good => new Color(0.9f, 0.55f, 0.1f),
-            AppearanceType.Premium => new Color(1f, 0.84f, 0.2f),
-            _ => new Color(0.3f, 0.65f, 0.35f)
-        };
     }
 }

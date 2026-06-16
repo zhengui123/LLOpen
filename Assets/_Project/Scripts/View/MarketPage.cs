@@ -398,12 +398,12 @@ public class MarketPage : MonoBehaviour
             var durian = durians[i];
             if (durianImages != null && i < durianImages.Length && durianImages[i] != null)
             {
-                durianImages[i].color = GetAppearanceColor(durian.appearance);
+                durianImages[i].color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
             }
 
             if (appearanceTexts != null && i < appearanceTexts.Length && appearanceTexts[i] != null)
             {
-                appearanceTexts[i].text = durian.appearance.ToString();
+                appearanceTexts[i].text = DurianDisplayUtil.GetAppearanceName(durian.appearance);
             }
 
             var canAfford = PlayerData.Instance.Gold >= durian.finalPrice;
@@ -478,16 +478,5 @@ public class MarketPage : MonoBehaviour
                 cardRow.GetChild(i).DOKill();
             }
         }
-    }
-
-    private static Color GetAppearanceColor(AppearanceType appearance)
-    {
-        return appearance switch
-        {
-            AppearanceType.Poor => new Color(0.45f, 0.35f, 0.25f),
-            AppearanceType.Good => new Color(0.9f, 0.55f, 0.1f),
-            AppearanceType.Premium => new Color(1f, 0.84f, 0.2f),
-            _ => new Color(0.3f, 0.65f, 0.35f)
-        };
     }
 }

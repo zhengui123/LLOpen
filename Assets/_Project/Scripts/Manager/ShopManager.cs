@@ -52,6 +52,48 @@ public class ShopManager
         return bonuses[index];
     }
 
+    /// <summary>
+    /// 下一级商店等级；已满级时返回当前等级。
+    /// </summary>
+    public int GetNextLevel()
+    {
+        return CurrentLevel >= MaxLevel ? CurrentLevel : CurrentLevel + 1;
+    }
+
+    /// <summary>
+    /// 从当前等级升到下一级所需金币；已满级返回 0。
+    /// </summary>
+    public int GetUpgradeCost()
+    {
+        if (CurrentLevel >= MaxLevel)
+        {
+            return 0;
+        }
+
+        var costs = GetUpgradeCosts();
+        return costs[CurrentLevel];
+    }
+
+    /// <summary>
+    /// 升级后下一级的售卖加成（用于未满级时的效果预告）。
+    /// </summary>
+    public float GetNextLevelSellBonus()
+    {
+        if (CurrentLevel >= MaxLevel)
+        {
+            return GetSellBonus();
+        }
+
+        var bonuses = GetSellBonuses();
+        var nextIndex = CurrentLevel;
+        if (nextIndex < 0 || nextIndex >= bonuses.Length)
+        {
+            return 0f;
+        }
+
+        return bonuses[nextIndex];
+    }
+
     private int[] GetUpgradeCosts()
     {
         return _config != null && _config.upgradeCosts != null && _config.upgradeCosts.Length > 0

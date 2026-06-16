@@ -589,8 +589,10 @@ public static class MvpSceneSetupEditor
         blockRect.offsetMin = Vector2.zero;
         blockRect.offsetMax = Vector2.zero;
         block.AddComponent<Image>().color = new Color(0.3f, 0.65f, 0.35f);
-        CreateText(go.transform, "Label", "榴莲", 18, TextAnchor.MiddleCenter,
-            new Vector2(0.05f, 0.05f), new Vector2(0.95f, 0.22f));
+        CreateText(go.transform, "VarietyText", "金枕", 20, TextAnchor.MiddleCenter,
+            new Vector2(0.05f, 0.52f), new Vector2(0.95f, 0.72f));
+        CreateText(go.transform, "InfoText", "普通 · 购价 50 · 出肉约 40%", 14, TextAnchor.MiddleCenter,
+            new Vector2(0.05f, 0.05f), new Vector2(0.95f, 0.48f));
         go.SetActive(false);
         var prefab = PrefabUtility.SaveAsPrefabAsset(go, path);
         Object.DestroyImmediate(go);

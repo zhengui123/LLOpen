@@ -79,7 +79,7 @@ public class OpenPage : MonoBehaviour
 
         if (durianImage != null)
         {
-            durianImage.color = GetAppearanceColor(durian.appearance);
+            durianImage.color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
             durianImage.transform.DOKill();
             durianImage.transform.localScale = Vector3.one * 0.92f;
             durianImage.transform.DOScale(1f, 0.35f).SetEase(Ease.OutBack);
@@ -246,16 +246,5 @@ public class OpenPage : MonoBehaviour
     {
         _openedSub?.Dispose();
         KillTweens();
-    }
-
-    private static Color GetAppearanceColor(AppearanceType appearance)
-    {
-        return appearance switch
-        {
-            AppearanceType.Poor => new Color(0.45f, 0.35f, 0.25f),
-            AppearanceType.Good => new Color(0.9f, 0.55f, 0.1f),
-            AppearanceType.Premium => new Color(1f, 0.84f, 0.2f),
-            _ => new Color(0.3f, 0.65f, 0.35f)
-        };
     }
 }
