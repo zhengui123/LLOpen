@@ -1,4 +1,4 @@
-# 《llopen MVP》- AI绘图提示词文档
+# 《榴莲开了 MVP》- AI绘图提示词文档
 
 > 版本：MVP v1.0 | 日期：2026-06-15
 > 对比完整版：110张 → MVP仅25张（核心贴图，其余用色块Placeholder）
@@ -28,9 +28,12 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
 | D-01~D-03 | 榴莲未开（普通外表）| 3张 | 512×512px | PNG | P0 |
 | D-A01~D-A09 | 榴莲未开（外观变体）| 9张 | 512×512px | PNG | P0 |
 | D-O01~D-O06 | 榴莲已开（出肉率变体）| 6张 | 512×512px | PNG | P0 |
+| K-01, SH-01~02, FL-01~02 | 开果动画贴图 | 5张 | 256-512px | PNG | P0 |
 | U-01~U-04 | 外观等级图标 | 4张 | 256×256px | PNG | P1 |
+| UI-05~UI-09 | UI图标扩充 | 5张 | 64-256px | PNG | P0 |
+| R-01~R-06 | 出肉率评级图标 | 6张 | 256×256px | PNG | P0 |
 | F-01 | 市场3选1框架 | 1张 | 1080×1920px | PNG | P1 |
-| **合计** | | **25张** | | | |
+| **合计** | | **41张** | | | |
 
 > **MVP原则**：场景背景只做2张（市场+开果台），榴莲只做3品种，出肉率只做2种极端（空壳+爆肉），中间档次用色块Placeholder。外观变体只做劣质/优质/极品（普通外表=D-01~D-03）。
 
@@ -382,7 +385,96 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
 
 ---
 
-## 四、UI图标（5张）
+
+## 四、开果动画贴图（5张）—— K-01, SH-01~SH-02, FL-01~FL-02
+
+> 这些贴图是 Phase 5 开果动画的核心素材。没有它们，划刀和壳裂动画无法实现。
+
+---
+
+### K-01 水果刀
+
+- **用途**：Phase 5.1 KnifeTool，手指拖动划壳的手持刀贴图。独立于背景中装饰用的刀，这是玩家操作的交互道具
+- **尺寸**：256×512px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a single handheld fruit knife for opening durians, sharp curved stainless steel blade with wooden handle, slightly curved blade shape for fruit opening, clean shiny blade with subtle reflection, warm brown wood handle with visible grain, top-down view angle, isolated on white background, no hand holding it, knife only, simple and clear silhouette for game UI, soft shadow below
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, hand holding knife, blood, weapon, combat knife, chef knife too large, cleaver
+  ```
+
+---
+
+### SH-01 榴莲壳 - 左半
+
+- **用途**：Phase 5.2 DurianOpener，壳裂开动画的左侧半壳，向左侧分离移动
+- **尺寸**：512×512px
+- **格式**：PNG（透明背景）
+- **说明**：这是从中间劈开的左半边榴莲壳，内侧朝外。用通用榴莲壳色（黄绿色），不区分品种（因为玩家最关心的是里面的肉，壳只是过渡动画素材）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, the LEFT HALF of a durian shell that has been split in half from the top, showing the hollow interior of the shell, pale yellowish green shell exterior with blunt thorns on the outside, pale cream colored inner shell surface visible, split edge is clean and straight (cut by knife), half-round bowl shape, top-down angle slightly tilted, isolated on transparent background, simple silhouette for animation sprite
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, durian flesh inside, whole durian, right half, people
+  ```
+
+---
+
+### SH-02 榴莲壳 - 右半
+
+- **用途**：Phase 5.2 DurianOpener，壳裂开动画的右侧半壳，向右侧分离移动
+- **尺寸**：512×512px
+- **格式**：PNG（透明背景）
+- **说明**：右半边榴莲壳，与 SH-01 配对使用。同样不区分品种，只做一张通用壳
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, the RIGHT HALF of a durian shell that has been split in half from the top, showing the hollow interior of the shell, pale yellowish green shell exterior with blunt thorns on the outside, pale cream colored inner shell surface visible, split edge is clean and straight (cut by knife), half-round bowl shape, top-down angle slightly tilted, isolated on transparent background, simple silhouette for animation sprite
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, durian flesh inside, whole durian, left half, people
+  ```
+
+---
+
+### FL-01 单房果肉块
+
+- **用途**：Phase 5.2 DurianOpener，逐房揭示时"有肉"的房显示此贴图。一个金黄色饱满的榴莲果肉块
+- **尺寸**：256×256px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a single plump pillow-shaped piece of golden yellow durian flesh, rich appetizing warm golden color, soft glossy moist texture, creamy appearance, slightly rounded pillow shape with gentle curves, one individual fruit segment that would fit in a durian compartment, isolated on transparent background, delicious premium fruit appearance, soft warm lighting
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, whole durian, shell, plate, bowl, multiple pieces
+  ```
+
+---
+
+### FL-02 单房空壳块
+
+- **用途**：Phase 5.2 DurianOpener，逐房揭示时"空房"的房显示此贴图。一个灰色干瘪的空壳房块
+- **尺寸**：256×256px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, food illustration style, a single empty dried-out durian compartment pod, dull gray-brown color, shriveled and withered appearance, thin dry texture, showing the shell interior but completely devoid of fruit flesh, disappointing empty result, slightly concave shape, isolated on transparent background, sad comedic "empty" visual cue
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, golden flesh, yellow fruit, whole durian, multiple pieces
+  ```
+
+---
+
+## 五、UI图标（5张）
 
 ---
 
@@ -467,7 +559,200 @@ low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photograph
 
 ---
 
-## 五、Placeholder策略（开发用）
+
+
+---
+
+
+## 六、UI图标扩充（5张）—— UI-05~UI-09
+
+> 补充 Phase 6 各页面必需的UI元素贴图。
+
+---
+
+### UI-05 金币图标
+
+- **用途**：Phase 6.1/6.3/6.5：顶部余额显示、卖出金币增加动画、商店升级费用显示
+- **尺寸**：128×128px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, flat design, simple shapes, clear silhouette, a shiny gold coin icon for game currency display, circular gold coin with bright golden yellow color, subtle radial shine lines from center, small dollar or yuan symbol embossed in center, rich metallic gold gradient, game UI coin icon, clean edges, isolated on transparent background
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, pile of coins, multiple coins, bitcoin, crypto, paper money
+  ```
+
+---
+
+### UI-06 看广告图标
+
+- **用途**：Phase Ads，所有"看广告获取奖励"按钮上的统一图标（免费试闻、加价、复活等按钮共用）
+- **尺寸**：128×128px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, flat design, simple shapes, clear silhouette, a small icon for "watch ad to get reward" button, stylized play button triangle combined with a gift box or star sparkle, bright eye-catching colors (orange and gold), small film strip or video camera element, friendly inviting look, game UI button icon, isolated on transparent background
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, youtube logo, ad text, price tag
+  ```
+
+---
+
+### UI-07 滑动手势引导
+
+- **用途**：Phase 6.2 OpenPage，在榴莲顶部显示的手势指引动画关键帧，"在榴莲顶部滑动开果"
+- **尺寸**：256×256px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, UI tutorial element, a hand gesture guide icon showing a finger swiping motion, simplified cartoon hand with index finger extended pointing and making a swipe motion trail, white or light gray semi-transparent hand, motion trail lines showing the swipe direction from left to right (horizontal swipe), gentle glow around the finger tip, tutorial hint visual, isolated on transparent background
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, whole arm, detailed hand anatomy, realistic finger
+  ```
+
+---
+
+### UI-08 返回箭头按钮
+
+- **用途**：Phase 6.1~6.5，各页面左上角的返回/退出按钮
+- **尺寸**：64×64px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, flat design, simple shapes, clear silhouette, a small back arrow button icon for game UI navigation, left-pointing arrow shape in warm brown or gold color, simple clean arrow silhouette with slightly rounded corners, circular button background in semi-transparent dark color, game UI navigation element, isolated on transparent background
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, right arrow, double arrow, thick heavy design
+  ```
+
+---
+
+### UI-09 品种选择按钮底图
+
+- **用途**：Phase 6.1 MarketPage，金枕/干尧/猫山王三个品种选择按钮的通用底图
+- **尺寸**：256×64px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, UI element, a horizontal rounded rectangle button background for variety selection in a fruit market game, warm wooden brown color with subtle wood grain texture, rounded corners, soft inner shadow for depth, slightly raised 3D button appearance, clean and inviting design, game UI button template, isolated on transparent background
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, text on button, specific fruit image, too ornate
+  ```
+
+---
+
+## 七、出肉率评级图标（6张）—— R-01~R-06
+
+> Phase 6.2 OpenPage，开果完成后根据出肉率显示对应评级图标。
+> 这些是重要的情绪反馈元素，用于强化"开盲盒"的快感。
+
+---
+
+### R-01 空壳评级图标
+
+- **用途**：出肉率 0-15% 的评级标识，视觉反馈：灰色 + 碎裂
+- **尺寸**：256×256px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, a result rating badge for durian opening game, EMPTY SHELL result, gray cracked egg or shell shape, sad disappointed visual tone, dull gray and dark colors, small crack lines radiating from center, "worst result" visual language, game UI rating badge, isolated on transparent background
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, smile, happy, gold, bright colors, stars
+  ```
+
+---
+
+### R-02 小亏评级图标
+
+- **用途**：出肉率 15-30% 的评级标识，视觉反馈：黄色 + 苦笑表情
+- **尺寸**：256×256px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, a result rating badge for durian opening game, SLIGHT LOSS result, yellow circle badge, wry smile emoji-like face with sweat drop, "could be worse" visual tone, warm yellow and light orange colors, slightly disappointed but not terrible mood, game UI rating badge, isolated on transparent background
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, crying, angry, gold, stars, celebration
+  ```
+
+---
+
+### R-03 回本评级图标
+
+- **用途**：出肉率 30-45% 的评级标识，视觉反馈：蓝色 + 平淡表情
+- **尺寸**：256×256px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, a result rating badge for durian opening game, BREAK EVEN result, blue circle badge, neutral straight-line mouth emoji-like face, "not bad not great" visual tone, calm blue and light cyan colors, balanced neutral mood, game UI rating badge, isolated on transparent background
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, sad, happy, gold, stars, celebration
+  ```
+
+---
+
+### R-04 小赚评级图标
+
+- **用途**：出肉率 45-60% 的评级标识，视觉反馈：绿色 + 微笑
+- **尺寸**：256×256px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, a result rating badge for durian opening game, SMALL PROFIT result, green circle badge, happy smiling emoji-like face with closed happy eyes, "nice win" visual tone, bright green and lime colors, cheerful positive mood, small sparkle accents on sides, game UI rating badge, isolated on transparent background
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, sad, crying, angry, over the top celebration
+  ```
+
+---
+
+### R-05 大赚评级图标
+
+- **用途**：出肉率 60-75% 的评级标识，视觉反馈：金色 + 大笑
+- **尺寸**：256×256px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, a result rating badge for durian opening game, BIG PROFIT result, golden circle badge with radial shine, laughing emoji-like face with open mouth and joy tears, "jackpot" visual tone, rich gold and warm yellow colors, exciting happy mood, star sparkles and coins floating around the badge, premium celebration feeling, game UI rating badge, isolated on transparent background
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, sad, crying, angry, rainbow (save for durian king)
+  ```
+
+---
+
+### R-06 榴莲之王评级图标
+
+- **用途**：出肉率 75%+ 的评级标识，视觉反馈：彩虹 + 全屏特效，这是游戏中最稀有的结果
+- **尺寸**：256×256px
+- **格式**：PNG（透明背景）
+- **Prompt**：
+  ```
+  2D casual mobile game art, cartoon style, vibrant colors, clean lines, icon design, a result rating badge for durian opening game, DURIAN KING legendary result, circular badge with rainbow gradient border and golden crown on top, ecstatic emoji-like face with star eyes and wide open laughing mouth, rainbow color burst radiating outward, golden sparkles and diamond particles floating around, "absolute legend jackpot" visual tone, most premium celebration feeling, tiny durian silhouette inside a royal crest design, game UI ultimate rating badge, isolated on transparent background
+  ```
+- **Negative Prompt**：
+  ```
+  low quality, blurry, pixelated, distorted, deformed, ugly, realistic, photographic, 3D render, dark, gloomy, scary, horror, text, watermark, logo, signature, extra limbs, bad anatomy, noisy, grainy, overexposed, underexposed, messy lines, sketch, rough draft, sad, crying, plain, simple, boring
+  ```
+
+
+## 八、Placeholder策略（开发用）
 
 MVP阶段，以下贴图使用色块Placeholder，不需要AI生成：
 
@@ -481,7 +766,7 @@ MVP阶段，以下贴图使用色块Placeholder，不需要AI生成：
 
 ---
 
-## 六、批量生成执行命令
+## 九、批量生成执行命令
 
 ```bash
 cd "C:\Users\1\WorkBuddy\2026-06-11-11-51-10\MVP"

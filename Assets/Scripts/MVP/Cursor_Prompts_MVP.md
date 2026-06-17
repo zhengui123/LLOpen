@@ -1,4 +1,4 @@
-# 《llopen MVP》- Cursor 开发流程提示词
+# 《榴莲开了 MVP》- Cursor 开发流程提示词
 
 > 版本：MVP v1.0 | 日期：2026-06-15
 > 对比完整版：Phase 0-8（43步）→ MVP仅Phase 0-5 + 广告（~20步）
@@ -19,7 +19,7 @@
 
 2. Player Settings：
    - Company Name: DurianGame
-   - Product Name: llopenMVP
+   - Product Name: 榴莲开了MVP
    - Scripting Backend: IL2CPP
    - API Compatibility Level: .NET Standard 2.1
    - Color Space: Linear
