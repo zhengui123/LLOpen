@@ -9,19 +9,27 @@ using UnityEngine.UI;
 /// </summary>
 public class DurianOpener : MonoBehaviour
 {
+    [SerializeField] private DurianSpriteConfig spriteConfig;
     [SerializeField] private Transform shellTransform;
+    [SerializeField] private Image durianImage;
+    [SerializeField] private Image shellLeftImage;
+    [SerializeField] private Image shellRightImage;
     [SerializeField] private Transform roomsRoot;
     [SerializeField] private GameObject roomMeatPrefab;
     [SerializeField] private GameObject roomEmptyPrefab;
     [SerializeField] private GameObject floatTextPrefab;
     [SerializeField] private Text ratingText;
+    [SerializeField] private Image ratingIcon;
     [SerializeField] private float shellOpenDuration = 0.35f;
+    [SerializeField] private float shellSplitDistance = 100f;
     [SerializeField] private float roomPopDuration = 0.25f;
     [SerializeField] private float roomSpacing = 1.2f;
     [SerializeField] private float floatTextDuration = 0.8f;
 
     private bool _isOpening;
     private Vector3 _shellOriginalScale = Vector3.one;
+    private Vector2 _shellLeftStartPos;
+    private Vector2 _shellRightStartPos;
     private readonly List<GameObject> _spawnedRooms = new();
 
     private void Awake()
@@ -30,6 +38,8 @@ public class DurianOpener : MonoBehaviour
         {
             _shellOriginalScale = shellTransform.localScale;
         }
+
+        CacheShellHalfPositions();
     }
 
     /// <summary>
@@ -46,16 +56,13 @@ public class DurianOpener : MonoBehaviour
             shellTransform.localScale = _shellOriginalScale;
         }
 
-        if (ratingText != null)
+        if (durianImage != null)
         {
-            ratingText.text = string.Empty;
-            ratingText.transform.localScale = Vector3.one;
-            var ratingCanvasGroup = ratingText.GetComponent<CanvasGroup>();
-            if (ratingCanvasGroup != null)
-            {
-                ratingCanvasGroup.alpha = 1f;
-            }
+            durianImage.gameObject.SetActive(true);
         }
+
+        ResetShellHalfImages();
+        ResetRatingDisplay();
     }
 
     public async UniTask OpenAsync(DurianData durian)
@@ -86,6 +93,12 @@ public class DurianOpener : MonoBehaviour
 
     private async UniTask PlayShellCrackAsync()
     {
+        if (HasShellHalfImages())
+        {
+            await PlayShellHalfCrackAsync();
+            return;
+        }
+
         if (shellTransform == null)
         {
             return;
@@ -97,6 +110,45 @@ public class DurianOpener : MonoBehaviour
             .DOScale(to, shellOpenDuration)
             .SetEase(Ease.OutBack)
             .AsyncWaitForCompletion();
+    }
+
+    private async UniTask PlayShellHalfCrackAsync()
+    {
+        CacheShellHalfPositions();
+
+        if (durianImage != null)
+        {
+            durianImage.gameObject.SetActive(false);
+        }
+
+        if (spriteConfig != null)
+        {
+            if (shellLeftImage != null && spriteConfig.shellLeftHalf != null)
+            {
+                shellLeftImage.sprite = spriteConfig.shellLeftHalf;
+            }
+
+            if (shellRightImage != null && spriteConfig.shellRightHalf != null)
+            {
+                shellRightImage.sprite = spriteConfig.shellRightHalf;
+            }
+        }
+
+        var leftRect = shellLeftImage.rectTransform;
+        var rightRect = shellRightImage.rectTransform;
+        leftRect.anchoredPosition = _shellLeftStartPos;
+        rightRect.anchoredPosition = _shellRightStartPos;
+        shellLeftImage.gameObject.SetActive(true);
+        shellRightImage.gameObject.SetActive(true);
+
+        var sequence = DOTween.Sequence();
+        sequence.Join(leftRect
+            .DOAnchorPosX(_shellLeftStartPos.x - shellSplitDistance, shellOpenDuration)
+            .SetEase(Ease.OutBack));
+        sequence.Join(rightRect
+            .DOAnchorPosX(_shellRightStartPos.x + shellSplitDistance, shellOpenDuration)
+            .SetEase(Ease.OutBack));
+        await sequence.AsyncWaitForCompletion();
     }
 
     private async UniTask RevealRoomsAsync(DurianData durian)
@@ -120,6 +172,7 @@ public class DurianOpener : MonoBehaviour
             }
 
             var room = Instantiate(prefab, roomsRoot);
+            ApplyRoomSprite(room, hasMeat);
             room.transform.localPosition = new Vector3(startX + i * roomSpacing, 0f, 0f);
             room.transform.localScale = Vector3.zero;
             _spawnedRooms.Add(room);
@@ -133,6 +186,27 @@ public class DurianOpener : MonoBehaviour
         if (revealSequence.Duration() > 0f)
         {
             await revealSequence.AsyncWaitForCompletion();
+        }
+    }
+
+    private void ApplyRoomSprite(GameObject room, bool hasMeat)
+    {
+        if (spriteConfig == null)
+        {
+            return;
+        }
+
+        var image = room.GetComponent<Image>();
+        if (image == null)
+        {
+            return;
+        }
+
+        var sprite = hasMeat ? spriteConfig.fleshPiece : spriteConfig.emptyPiece;
+        if (sprite != null)
+        {
+            image.sprite = sprite;
+            image.color = Color.white;
         }
     }
 
@@ -177,23 +251,129 @@ public class DurianOpener : MonoBehaviour
         ratingText.text = $"出肉率 {yieldRate:F1}% · {rating}";
         ratingText.transform.localScale = Vector3.zero;
 
-        var canvasGroup = ratingText.GetComponent<CanvasGroup>();
-        if (canvasGroup == null)
+        var textCanvasGroup = ratingText.GetComponent<CanvasGroup>();
+        if (textCanvasGroup == null)
         {
-            canvasGroup = ratingText.gameObject.AddComponent<CanvasGroup>();
+            textCanvasGroup = ratingText.gameObject.AddComponent<CanvasGroup>();
         }
 
-        canvasGroup.alpha = 0f;
+        textCanvasGroup.alpha = 0f;
+
+        if (ratingIcon != null)
+        {
+            ratingIcon.transform.DOKill();
+            ratingIcon.gameObject.SetActive(true);
+            if (spriteConfig != null)
+            {
+                ratingIcon.sprite = spriteConfig.GetRatingSprite(rating);
+            }
+
+            ratingIcon.transform.localScale = Vector3.zero;
+        }
+
+        var iconCanvasGroup = GetOrAddCanvasGroup(ratingIcon);
 
         var sequence = DOTween.Sequence();
         sequence.Join(ratingText.transform.DOScale(1f, 0.35f).SetEase(Ease.OutBack));
-        sequence.Join(canvasGroup.DOFade(1f, 0.3f));
+        sequence.Join(textCanvasGroup.DOFade(1f, 0.3f));
+
+        if (ratingIcon != null)
+        {
+            sequence.Join(ratingIcon.transform.DOScale(1f, 0.35f).SetEase(Ease.OutBack));
+            if (iconCanvasGroup != null)
+            {
+                iconCanvasGroup.alpha = 0f;
+                sequence.Join(iconCanvasGroup.DOFade(1f, 0.3f));
+            }
+        }
 
         if (rating == "榴莲之王")
         {
             sequence.Append(ratingText.transform
                 .DOPunchScale(Vector3.one * 0.25f, 0.5f, 8, 0.5f));
+            if (ratingIcon != null)
+            {
+                sequence.Join(ratingIcon.transform
+                    .DOPunchScale(Vector3.one * 0.25f, 0.5f, 8, 0.5f));
+            }
         }
+    }
+
+    private bool HasShellHalfImages()
+    {
+        return shellLeftImage != null && shellRightImage != null;
+    }
+
+    private void CacheShellHalfPositions()
+    {
+        if (shellLeftImage != null)
+        {
+            _shellLeftStartPos = shellLeftImage.rectTransform.anchoredPosition;
+        }
+
+        if (shellRightImage != null)
+        {
+            _shellRightStartPos = shellRightImage.rectTransform.anchoredPosition;
+        }
+    }
+
+    private void ResetShellHalfImages()
+    {
+        if (shellLeftImage != null)
+        {
+            shellLeftImage.rectTransform.DOKill();
+            shellLeftImage.rectTransform.anchoredPosition = _shellLeftStartPos;
+            shellLeftImage.gameObject.SetActive(false);
+        }
+
+        if (shellRightImage != null)
+        {
+            shellRightImage.rectTransform.DOKill();
+            shellRightImage.rectTransform.anchoredPosition = _shellRightStartPos;
+            shellRightImage.gameObject.SetActive(false);
+        }
+    }
+
+    private void ResetRatingDisplay()
+    {
+        if (ratingText != null)
+        {
+            ratingText.text = string.Empty;
+            ratingText.transform.localScale = Vector3.one;
+            var ratingCanvasGroup = ratingText.GetComponent<CanvasGroup>();
+            if (ratingCanvasGroup != null)
+            {
+                ratingCanvasGroup.alpha = 1f;
+            }
+        }
+
+        if (ratingIcon != null)
+        {
+            ratingIcon.transform.DOKill();
+            ratingIcon.transform.localScale = Vector3.one;
+            ratingIcon.gameObject.SetActive(false);
+            var iconCanvasGroup = ratingIcon.GetComponent<CanvasGroup>();
+            if (iconCanvasGroup != null)
+            {
+                iconCanvasGroup.alpha = 1f;
+            }
+        }
+    }
+
+    private static CanvasGroup GetOrAddCanvasGroup(Image image)
+    {
+        if (image == null)
+        {
+            return null;
+        }
+
+        var canvasGroup = image.GetComponent<CanvasGroup>();
+        if (canvasGroup == null)
+        {
+            canvasGroup = image.gameObject.AddComponent<CanvasGroup>();
+        }
+
+        return canvasGroup;
     }
 
     private void ClearRooms()
@@ -217,6 +397,16 @@ public class DurianOpener : MonoBehaviour
             shellTransform.DOKill();
         }
 
+        if (shellLeftImage != null)
+        {
+            shellLeftImage.rectTransform.DOKill();
+        }
+
+        if (shellRightImage != null)
+        {
+            shellRightImage.rectTransform.DOKill();
+        }
+
         if (roomsRoot != null)
         {
             roomsRoot.DOKill(true);
@@ -229,6 +419,16 @@ public class DurianOpener : MonoBehaviour
             if (ratingCanvasGroup != null)
             {
                 ratingCanvasGroup.DOKill();
+            }
+        }
+
+        if (ratingIcon != null)
+        {
+            ratingIcon.transform.DOKill();
+            var iconCanvasGroup = ratingIcon.GetComponent<CanvasGroup>();
+            if (iconCanvasGroup != null)
+            {
+                iconCanvasGroup.DOKill();
             }
         }
     }

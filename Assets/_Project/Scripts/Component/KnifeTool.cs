@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// 划刀交互：检测顶部滑动、绘制裂缝线，达到阈值后触发开果。
@@ -13,6 +14,10 @@ public class KnifeTool : MonoBehaviour
     [SerializeField] private RectTransform swipeArea;
     [SerializeField] private Camera targetCamera;
     [SerializeField] private LineRenderer crackLine;
+    [SerializeField] private Image knifeImage;
+    [SerializeField] private DurianSpriteConfig spriteConfig;
+    [SerializeField] private float knifeShakeStrength = 12f;
+    [SerializeField] private float knifeFadeDuration = 0.3f;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip crackClip;
     [SerializeField] private float shellWidth = 4f;
@@ -47,6 +52,7 @@ public class KnifeTool : MonoBehaviour
         }
 
         ResetCrackLine();
+        ResetKnifeImage();
     }
 
     public void Setup(DurianData durian)
@@ -57,6 +63,7 @@ public class KnifeTool : MonoBehaviour
         _isSwiping = false;
         _swipeDistance = 0f;
         ResetCrackLine();
+        ResetKnifeImage();
         enabled = true;
     }
 
@@ -123,10 +130,13 @@ public class KnifeTool : MonoBehaviour
         _crackPoints.Clear();
         _crackPoints.Add(_swipeStartWorld);
         UpdateCrackLine();
+        ShowKnifeAt(screenPosition);
     }
 
     private void ContinueSwipe(Vector2 screenPosition)
     {
+        UpdateKnifePosition(screenPosition);
+
         var worldPos = ScreenToWorld(screenPosition);
         _swipeDistance = Vector3.Distance(_swipeStartWorld, worldPos);
 
@@ -143,11 +153,13 @@ public class KnifeTool : MonoBehaviour
 
         if (_swipeDistance < shellWidth * swipeThresholdRatio)
         {
+            HideKnifeImmediate();
             return;
         }
 
         _hasOpened = true;
         enabled = false;
+        FadeOutKnife().Forget();
         PlayCrackFeedback().Forget();
 
         if (durianOpener != null)
@@ -247,6 +259,83 @@ public class KnifeTool : MonoBehaviour
         }
     }
 
+    private void ShowKnifeAt(Vector2 screenPosition)
+    {
+        if (knifeImage == null)
+        {
+            return;
+        }
+
+        if (spriteConfig != null && spriteConfig.knifeSprite != null)
+        {
+            knifeImage.sprite = spriteConfig.knifeSprite;
+        }
+
+        knifeImage.DOKill();
+        var color = knifeImage.color;
+        color.a = 1f;
+        knifeImage.color = color;
+        knifeImage.gameObject.SetActive(true);
+        UpdateKnifePosition(screenPosition);
+
+        var knifeRect = knifeImage.rectTransform;
+        knifeRect.DOKill();
+        knifeRect.DOShakeAnchorPos(shakeDuration, knifeShakeStrength, 20, 90f, false, true);
+    }
+
+    private void UpdateKnifePosition(Vector2 screenPosition)
+    {
+        if (knifeImage == null || !knifeImage.gameObject.activeSelf)
+        {
+            return;
+        }
+
+        var parent = knifeImage.rectTransform.parent as RectTransform;
+        if (parent == null)
+        {
+            return;
+        }
+
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                parent, screenPosition, targetCamera, out var localPoint))
+        {
+            knifeImage.rectTransform.anchoredPosition = localPoint;
+        }
+    }
+
+    private async UniTaskVoid FadeOutKnife()
+    {
+        if (knifeImage == null)
+        {
+            return;
+        }
+
+        knifeImage.DOKill();
+        knifeImage.rectTransform.DOKill();
+        await knifeImage.DOFade(0f, knifeFadeDuration).AsyncWaitForCompletion();
+        HideKnifeImmediate();
+    }
+
+    private void HideKnifeImmediate()
+    {
+        if (knifeImage == null)
+        {
+            return;
+        }
+
+        knifeImage.DOKill();
+        knifeImage.rectTransform.DOKill();
+        knifeImage.gameObject.SetActive(false);
+        var color = knifeImage.color;
+        color.a = 1f;
+        knifeImage.color = color;
+    }
+
+    private void ResetKnifeImage()
+    {
+        HideKnifeImmediate();
+    }
+
     private void KillTweens()
     {
         if (targetCamera != null)
@@ -257,6 +346,12 @@ public class KnifeTool : MonoBehaviour
         if (crackLine != null)
         {
             crackLine.DOKill();
+        }
+
+        if (knifeImage != null)
+        {
+            knifeImage.DOKill();
+            knifeImage.rectTransform.DOKill();
         }
     }
 

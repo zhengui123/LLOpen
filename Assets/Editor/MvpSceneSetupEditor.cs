@@ -40,12 +40,25 @@ public static class MvpSceneSetupEditor
         Debug.Log("[MvpSceneSetup] 已创建 DurianSpriteConfig.asset，请在 Inspector 中拖入 41 张 Sprite。");
     }
 
+    [MenuItem("Tools/llopen/Apply Room Prefab Sprites")]
+    public static void ApplyRoomPrefabSpritesMenu()
+    {
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+        var meat = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/RoomMeat.prefab");
+        var empty = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/RoomEmpty.prefab");
+        ApplyRoomPrefabSprites(meat, empty, spriteConfig);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[MvpSceneSetup] RoomMeat / RoomEmpty 已应用 FL-01 / FL-02 贴图。");
+    }
+
     [MenuItem("Tools/llopen/Setup MVP Scene")]
     public static void SetupMvpScene()
     {
         EnsureFolder(PrefabDir);
         var roomMeatPrefab = CreateBlockPrefab("RoomMeat", new Color(1f, 0.84f, 0.2f), new Vector2(80, 80));
         var roomEmptyPrefab = CreateBlockPrefab("RoomEmpty", new Color(0.55f, 0.55f, 0.55f), new Vector2(80, 80));
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+        ApplyRoomPrefabSprites(roomMeatPrefab, roomEmptyPrefab, spriteConfig);
         var floatTextPrefab = CreateFloatTextPrefab();
         var bagCardPrefab = CreateBagCardPrefab();
 
@@ -64,6 +77,8 @@ public static class MvpSceneSetupEditor
 
         AssetDatabase.SaveAssets();
         Debug.Log("[MvpSceneSetup] Main + Launch 场景搭建完成。");
+
+        EditorSceneManager.OpenScene("Assets/Scenes/Demo.unity", OpenSceneMode.Single);
     }
 
     private static void BuildMainScene(
@@ -261,6 +276,18 @@ public static class MvpSceneSetupEditor
         roomsRect.offsetMin = Vector2.zero;
         roomsRect.offsetMax = Vector2.zero;
 
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+        var knifeImage = CreateImage(page.transform, "KnifeImage", Color.white,
+            new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+        knifeImage.rectTransform.sizeDelta = new Vector2(140f, 140f);
+        knifeImage.preserveAspect = true;
+        knifeImage.raycastTarget = false;
+        if (spriteConfig != null)
+        {
+            knifeImage.sprite = spriteConfig.knifeSprite;
+        }
+        knifeImage.gameObject.SetActive(false);
+
         var knifeGo = new GameObject("KnifeTool");
         knifeGo.transform.SetParent(page.transform, false);
         var knife = knifeGo.AddComponent<KnifeTool>();
@@ -279,6 +306,29 @@ public static class MvpSceneSetupEditor
 
         var ratingText = CreateText(page.transform, "Rating", "", 24, TextAnchor.MiddleCenter,
             new Vector2(0.1f, 0.05f), new Vector2(0.9f, 0.12f));
+        var ratingIcon = CreateImage(page.transform, "RatingIcon", Color.white,
+            new Vector2(0.12f, 0.05f), new Vector2(0.22f, 0.12f));
+        ratingIcon.preserveAspect = true;
+        ratingIcon.gameObject.SetActive(false);
+
+        var shellLeftImage = CreateImage(page.transform, "ShellLeft", Color.white,
+            new Vector2(0.15f, 0.25f), new Vector2(0.85f, 0.75f));
+        shellLeftImage.preserveAspect = true;
+        shellLeftImage.gameObject.SetActive(false);
+        if (spriteConfig != null)
+        {
+            shellLeftImage.sprite = spriteConfig.shellLeftHalf;
+        }
+
+        var shellRightImage = CreateImage(page.transform, "ShellRight", Color.white,
+            new Vector2(0.15f, 0.25f), new Vector2(0.85f, 0.75f));
+        shellRightImage.preserveAspect = true;
+        shellRightImage.gameObject.SetActive(false);
+        if (spriteConfig != null)
+        {
+            shellRightImage.sprite = spriteConfig.shellRightHalf;
+        }
+
         var sellButton = CreateButton(page.transform, "Sell", "卖出",
             new Vector2(0.3f, 0.12f), new Vector2(0.7f, 0.18f), new Color(0.85f, 0.55f, 0.1f));
         var reviveButton = CreateButton(page.transform, "Revive", "看广告复活",
@@ -291,16 +341,23 @@ public static class MvpSceneSetupEditor
         knifeSo.FindProperty("swipeArea").objectReferenceValue = swipeArea.GetComponent<RectTransform>();
         knifeSo.FindProperty("targetCamera").objectReferenceValue = Camera.main;
         knifeSo.FindProperty("crackLine").objectReferenceValue = line;
+        knifeSo.FindProperty("knifeImage").objectReferenceValue = knifeImage;
+        knifeSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
         knifeSo.FindProperty("shellWidth").floatValue = 4f;
         knifeSo.ApplyModifiedPropertiesWithoutUndo();
 
         var openerSo = new SerializedObject(opener);
+        openerSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
         openerSo.FindProperty("shellTransform").objectReferenceValue = shell.transform;
+        openerSo.FindProperty("durianImage").objectReferenceValue = durianImage;
+        openerSo.FindProperty("shellLeftImage").objectReferenceValue = shellLeftImage;
+        openerSo.FindProperty("shellRightImage").objectReferenceValue = shellRightImage;
         openerSo.FindProperty("roomsRoot").objectReferenceValue = roomsRoot.transform;
         openerSo.FindProperty("roomMeatPrefab").objectReferenceValue = roomMeatPrefab;
         openerSo.FindProperty("roomEmptyPrefab").objectReferenceValue = roomEmptyPrefab;
         openerSo.FindProperty("floatTextPrefab").objectReferenceValue = floatTextPrefab;
         openerSo.FindProperty("ratingText").objectReferenceValue = ratingText;
+        openerSo.FindProperty("ratingIcon").objectReferenceValue = ratingIcon;
         openerSo.ApplyModifiedPropertiesWithoutUndo();
 
         var opSo = new SerializedObject(op);
@@ -586,6 +643,40 @@ public static class MvpSceneSetupEditor
         rect.offsetMax = Vector2.zero;
         CreateText(go.transform, "Label", label, 22, TextAnchor.MiddleCenter);
         return btn;
+    }
+
+    private static void ApplyRoomPrefabSprites(
+        GameObject meatPrefab,
+        GameObject emptyPrefab,
+        DurianSpriteConfig config)
+    {
+        if (config == null)
+        {
+            return;
+        }
+
+        ApplySpriteToPrefab(meatPrefab, config.fleshPiece);
+        ApplySpriteToPrefab(emptyPrefab, config.emptyPiece);
+    }
+
+    private static void ApplySpriteToPrefab(GameObject prefab, Sprite sprite)
+    {
+        if (prefab == null || sprite == null)
+        {
+            return;
+        }
+
+        var path = AssetDatabase.GetAssetPath(prefab);
+        var root = PrefabUtility.LoadPrefabContents(path);
+        var image = root.GetComponent<Image>();
+        if (image != null)
+        {
+            image.sprite = sprite;
+            image.color = Color.white;
+        }
+
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        PrefabUtility.UnloadPrefabContents(root);
     }
 
     private static GameObject CreateBlockPrefab(string name, Color color, Vector2 size)
