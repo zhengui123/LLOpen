@@ -116,7 +116,7 @@ AdManager.ShowRewardedAd    → AdRewardEvent（Mock 2s）
 ### Cursor 提示词
 ```
 请在 Unity Editor 中创建菜单 Tools/llopen/Configure Texture Import Settings，
-对 Assets/_Project/Art/Textures/ 下所有贴图批量设置：
+对 Assets\Art\MVP\下所有贴图批量设置：
 
 1. S-*.jpg：Sprite、Max 2048、Bilinear
 2. D-*/D-A*/D-O*/SH-*：Sprite、Max 1024、Pixels Per Unit 512

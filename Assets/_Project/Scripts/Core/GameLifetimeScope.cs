@@ -7,6 +7,7 @@ public class GameLifetimeScope : LifetimeScope
     [SerializeField] private VarietyConfig[] varietyConfigs;
     [SerializeField] private AppearanceConfig[] appearanceConfigs;
     [SerializeField] private ShopConfig shopConfig;
+    [SerializeField] private DurianSpriteConfig durianSpriteConfig;
     [SerializeField] private GameUIRoot uiRoot;
     [SerializeField] private MarketPage marketPage;
     [SerializeField] private OpenPage openPage;
@@ -31,6 +32,11 @@ public class GameLifetimeScope : LifetimeScope
         builder.RegisterInstance(varietyConfigs);
         builder.RegisterInstance(appearanceConfigs);
         builder.RegisterInstance(shopConfig);
+
+        if (durianSpriteConfig != null)
+        {
+            builder.RegisterInstance(durianSpriteConfig);
+        }
 
         builder.Register<DurianGeneratorSystem>(Lifetime.Singleton);
         builder.Register<MarketManager>(Lifetime.Singleton);

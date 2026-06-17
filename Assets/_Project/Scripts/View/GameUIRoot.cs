@@ -1,10 +1,13 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// UI 页面导航根节点，控制各页面的显示/隐藏。
 /// </summary>
 public class GameUIRoot : MonoBehaviour
 {
+    [SerializeField] private Image marketBgImage;
+    [SerializeField] private Image openBgImage;
     [SerializeField] private MarketPage marketPage;
     [SerializeField] private OpenPage openPage;
     [SerializeField] private SellPage sellPage;
@@ -68,5 +71,21 @@ public class GameUIRoot : MonoBehaviour
         if (sellPage != null) sellPage.gameObject.SetActive(sellPage.gameObject == activePage);
         if (bagPage != null) bagPage.gameObject.SetActive(bagPage.gameObject == activePage);
         if (shopPage != null) shopPage.gameObject.SetActive(shopPage.gameObject == activePage);
+        UpdateBackground(activePage);
+    }
+
+    private void UpdateBackground(GameObject activePage)
+    {
+        var showOpenBg = openPage != null && openPage.gameObject == activePage;
+
+        if (marketBgImage != null)
+        {
+            marketBgImage.enabled = !showOpenBg;
+        }
+
+        if (openBgImage != null)
+        {
+            openBgImage.enabled = showOpenBg;
+        }
     }
 }

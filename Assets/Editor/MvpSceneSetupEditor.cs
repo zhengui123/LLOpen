@@ -17,6 +17,28 @@ public static class MvpSceneSetupEditor
     private const string LaunchScenePath = "Assets/Scenes/Launch.unity";
     private const string PrefabDir = "Assets/_Project/Prefabs/UI";
     private const string DefaultFontPath = "Assets/Font/GeourceAltCHT-Medium.ttf";
+    private const string MarketBgSpritePath = "Assets/Art/MVP/Scenes/S-01_市场背景.png";
+    private const string OpenBgSpritePath = "Assets/Art/MVP/Scenes/S-02_开果台背景.png";
+    private const string DurianSpriteConfigPath = "Assets/_Project/Data/DurianSpriteConfig.asset";
+
+    [MenuItem("Tools/llopen/Create DurianSpriteConfig Asset")]
+    public static void CreateDurianSpriteConfigAsset()
+    {
+        EnsureFolder("Assets/_Project/Data");
+        var existing = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+        if (existing != null)
+        {
+            Selection.activeObject = existing;
+            Debug.Log("[MvpSceneSetup] DurianSpriteConfig 已存在，请在 Inspector 中拖入 41 张 Sprite。");
+            return;
+        }
+
+        var asset = ScriptableObject.CreateInstance<DurianSpriteConfig>();
+        AssetDatabase.CreateAsset(asset, DurianSpriteConfigPath);
+        AssetDatabase.SaveAssets();
+        Selection.activeObject = asset;
+        Debug.Log("[MvpSceneSetup] 已创建 DurianSpriteConfig.asset，请在 Inspector 中拖入 41 张 Sprite。");
+    }
 
     [MenuItem("Tools/llopen/Setup MVP Scene")]
     public static void SetupMvpScene()
@@ -80,7 +102,15 @@ public static class MvpSceneSetupEditor
 
         var canvasGo = CreateCanvas();
         var uiRootGo = CreatePanel(canvasGo.transform, "UIRoot", fullStretch: true);
+        var uiRootImage = uiRootGo.GetComponent<Image>();
+        if (uiRootImage != null)
+        {
+            uiRootImage.color = new Color(0f, 0f, 0f, 0f);
+            uiRootImage.raycastTarget = false;
+        }
+
         var uiRoot = uiRootGo.AddComponent<GameUIRoot>();
+        var (marketBgImage, openBgImage) = BuildBackgroundImages(uiRootGo.transform);
 
         var marketPage = BuildMarketPage(uiRootGo.transform);
         var openPage = BuildOpenPage(uiRootGo.transform, roomMeatPrefab, roomEmptyPrefab, floatTextPrefab);
@@ -88,7 +118,7 @@ public static class MvpSceneSetupEditor
         var bagPage = BuildBagPage(uiRootGo.transform, bagCardPrefab);
         var shopPage = BuildShopPage(uiRootGo.transform);
 
-        WireUIRoot(uiRoot, marketPage, openPage, sellPage, bagPage, shopPage);
+        WireUIRoot(uiRoot, marketPage, openPage, sellPage, bagPage, shopPage, marketBgImage, openBgImage);
         WireGameLifetimeScope(gameRoot, uiRoot, marketPage, openPage, sellPage, bagPage, shopPage);
 
         marketPage.SetActive(false);
@@ -393,6 +423,14 @@ public static class MvpSceneSetupEditor
         so.FindProperty("sellPage").objectReferenceValue = sell.GetComponent<SellPage>();
         so.FindProperty("bagPage").objectReferenceValue = bag.GetComponent<BagPage>();
         so.FindProperty("shopPage").objectReferenceValue = shop.GetComponent<ShopPage>();
+
+        CreateDurianSpriteConfigAsset();
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+        if (spriteConfig != null)
+        {
+            so.FindProperty("durianSpriteConfig").objectReferenceValue = spriteConfig;
+        }
+
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -402,15 +440,37 @@ public static class MvpSceneSetupEditor
         GameObject open,
         GameObject sell,
         GameObject bag,
-        GameObject shop)
+        GameObject shop,
+        Image marketBgImage,
+        Image openBgImage)
     {
         var so = new SerializedObject(uiRoot);
+        so.FindProperty("marketBgImage").objectReferenceValue = marketBgImage;
+        so.FindProperty("openBgImage").objectReferenceValue = openBgImage;
         so.FindProperty("marketPage").objectReferenceValue = market.GetComponent<MarketPage>();
         so.FindProperty("openPage").objectReferenceValue = open.GetComponent<OpenPage>();
         so.FindProperty("sellPage").objectReferenceValue = sell.GetComponent<SellPage>();
         so.FindProperty("bagPage").objectReferenceValue = bag.GetComponent<BagPage>();
         so.FindProperty("shopPage").objectReferenceValue = shop.GetComponent<ShopPage>();
         so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static (Image marketBgImage, Image openBgImage) BuildBackgroundImages(Transform parent)
+    {
+        var marketBgImage = CreateImage(parent, "MarketBgImage", Color.white, Vector2.zero, Vector2.one);
+        var openBgImage = CreateImage(parent, "OpenBgImage", Color.white, Vector2.zero, Vector2.one);
+
+        marketBgImage.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(MarketBgSpritePath);
+        openBgImage.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(OpenBgSpritePath);
+
+        marketBgImage.preserveAspect = false;
+        openBgImage.preserveAspect = false;
+        marketBgImage.enabled = true;
+        openBgImage.enabled = false;
+
+        marketBgImage.transform.SetSiblingIndex(0);
+        openBgImage.transform.SetSiblingIndex(1);
+        return (marketBgImage, openBgImage);
     }
 
     private static GameObject CreateCanvas()
