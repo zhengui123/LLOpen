@@ -11,8 +11,10 @@ public class OpenPage : MonoBehaviour
 {
     [SerializeField] private KnifeTool knifeTool;
     [SerializeField] private DurianOpener durianOpener;
+    [SerializeField] private DurianSpriteConfig spriteConfig;
     [SerializeField] private Image durianImage;
     [SerializeField] private Text guideText;
+    [SerializeField] private Image swipeGuideImage;
     [SerializeField] private Text estimateText;
     [SerializeField] private Button sellButton;
     [SerializeField] private Button reviveButton;
@@ -27,6 +29,8 @@ public class OpenPage : MonoBehaviour
     private string _lastRating;
     private IDisposable _openedSub;
     private Tween _guidePulseTween;
+    private Tween _guideImagePulseTween;
+    private bool _staticUiApplied;
 
     [Inject]
     public void Construct(
@@ -45,6 +49,8 @@ public class OpenPage : MonoBehaviour
 
     private void Start()
     {
+        ApplyStaticUiSprites();
+
         if (sellButton != null)
         {
             sellButton.gameObject.SetActive(false);
@@ -76,14 +82,8 @@ public class OpenPage : MonoBehaviour
 
         durianOpener?.ResetVisualState();
         HideActionButtons();
-
-        if (durianImage != null)
-        {
-            durianImage.color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
-            durianImage.transform.DOKill();
-            durianImage.transform.localScale = Vector3.one * 0.92f;
-            durianImage.transform.DOScale(1f, 0.35f).SetEase(Ease.OutBack);
-        }
+        ApplyDurianVisual(durian);
+        BindKnifeEvents();
 
         if (guideText != null)
         {
@@ -92,6 +92,7 @@ public class OpenPage : MonoBehaviour
             StartGuidePulse();
         }
 
+        ShowSwipeGuide();
         RefreshEstimateText();
 
         if (knifeTool != null)
@@ -117,6 +118,7 @@ public class OpenPage : MonoBehaviour
             guideText.gameObject.SetActive(false);
         }
 
+        HideSwipeGuide();
         ShowButtonPop(sellButton);
         if (e.Rating == "空壳")
         {
@@ -141,6 +143,7 @@ public class OpenPage : MonoBehaviour
         _bagManager.ReplaceDurian(_currentDurian);
 
         durianOpener?.ResetVisualState();
+        ApplyDurianVisual(_currentDurian);
         RefreshEstimateText();
         HideActionButtons();
 
@@ -151,10 +154,111 @@ public class OpenPage : MonoBehaviour
             StartGuidePulse();
         }
 
+        ShowSwipeGuide();
+
         if (knifeTool != null)
         {
             knifeTool.Setup(_currentDurian);
         }
+    }
+
+    private void OnSwipeStarted()
+    {
+        HideSwipeGuide();
+    }
+
+    private void BindKnifeEvents()
+    {
+        if (knifeTool == null)
+        {
+            return;
+        }
+
+        knifeTool.SwipeStarted -= OnSwipeStarted;
+        knifeTool.SwipeStarted += OnSwipeStarted;
+    }
+
+    private void UnbindKnifeEvents()
+    {
+        if (knifeTool == null)
+        {
+            return;
+        }
+
+        knifeTool.SwipeStarted -= OnSwipeStarted;
+    }
+
+    private void ApplyDurianVisual(DurianData durian)
+    {
+        if (durianImage == null)
+        {
+            return;
+        }
+
+        if (spriteConfig != null)
+        {
+            durianImage.sprite = spriteConfig.GetUnopenedSprite(durian.variety, durian.appearance);
+            durianImage.color = Color.white;
+            durianImage.preserveAspect = true;
+        }
+        else
+        {
+            durianImage.color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
+        }
+
+        durianImage.transform.DOKill();
+        durianImage.transform.localScale = Vector3.one * 0.92f;
+        durianImage.transform.DOScale(1f, 0.35f).SetEase(Ease.OutBack);
+    }
+
+    private void ApplyStaticUiSprites()
+    {
+        if (_staticUiApplied || spriteConfig == null)
+        {
+            return;
+        }
+
+        if (swipeGuideImage != null && spriteConfig.swipeGuideIcon != null)
+        {
+            swipeGuideImage.sprite = spriteConfig.swipeGuideIcon;
+            swipeGuideImage.color = Color.white;
+            swipeGuideImage.preserveAspect = true;
+        }
+
+        if (backButton != null)
+        {
+            SharedUiSpriteUtil.ApplyBackIcon(backButton, spriteConfig);
+        }
+
+        if (reviveButton != null)
+        {
+            SharedUiSpriteUtil.ApplyAdIcon(reviveButton, spriteConfig);
+        }
+
+        _staticUiApplied = true;
+    }
+
+    private void ShowSwipeGuide()
+    {
+        if (swipeGuideImage == null)
+        {
+            return;
+        }
+
+        swipeGuideImage.gameObject.SetActive(true);
+        swipeGuideImage.transform.localScale = Vector3.one;
+    }
+
+    private void HideSwipeGuide()
+    {
+        if (swipeGuideImage == null)
+        {
+            return;
+        }
+
+        swipeGuideImage.transform.DOKill();
+        swipeGuideImage.gameObject.SetActive(false);
+        swipeGuideImage.transform.localScale = Vector3.one;
     }
 
     private void RefreshEstimateText()
@@ -211,17 +315,37 @@ public class OpenPage : MonoBehaviour
             .DOScale(1.06f, 0.85f)
             .SetEase(Ease.InOutSine)
             .SetLoops(-1, LoopType.Yoyo);
+
+        if (swipeGuideImage != null && swipeGuideImage.gameObject.activeSelf)
+        {
+            swipeGuideImage.transform.localScale = Vector3.one;
+            _guideImagePulseTween = swipeGuideImage.transform
+                .DOScale(1.06f, 0.85f)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo);
+        }
     }
 
     private void StopGuidePulse()
     {
         _guidePulseTween?.Kill();
         _guidePulseTween = null;
+        _guideImagePulseTween?.Kill();
+        _guideImagePulseTween = null;
 
         if (guideText != null)
         {
             guideText.transform.DOKill();
             guideText.transform.localScale = Vector3.one;
+        }
+
+        if (swipeGuideImage != null)
+        {
+            swipeGuideImage.transform.DOKill();
+            if (swipeGuideImage.gameObject.activeSelf)
+            {
+                swipeGuideImage.transform.localScale = Vector3.one;
+            }
         }
     }
 
@@ -245,6 +369,7 @@ public class OpenPage : MonoBehaviour
     private void OnDisable()
     {
         _openedSub?.Dispose();
+        UnbindKnifeEvents();
         KillTweens();
     }
 }

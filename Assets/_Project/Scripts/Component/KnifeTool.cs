@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
@@ -33,6 +34,9 @@ public class KnifeTool : MonoBehaviour
     private Vector3 _swipeStartWorld;
     private float _swipeDistance;
     private float _defaultLineWidth = 0.05f;
+
+    /// <summary>在滑动区域内开始划刀时触发。</summary>
+    public event Action SwipeStarted;
 
     private void Awake()
     {
@@ -131,6 +135,7 @@ public class KnifeTool : MonoBehaviour
         _crackPoints.Add(_swipeStartWorld);
         UpdateCrackLine();
         ShowKnifeAt(screenPosition);
+        SwipeStarted?.Invoke();
     }
 
     private void ContinueSwipe(Vector2 screenPosition)

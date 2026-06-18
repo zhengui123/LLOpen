@@ -16,6 +16,7 @@ public class ShopPage : MonoBehaviour
     [SerializeField] private Text effectText;
     [SerializeField] private Button upgradeButton;
     [SerializeField] private Button backButton;
+    [SerializeField] private DurianSpriteConfig spriteConfig;
 
     private ShopManager _shopManager;
     private GameUIRoot _uiRoot;
@@ -41,6 +42,8 @@ public class ShopPage : MonoBehaviour
             backButton.onClick.RemoveAllListeners();
             backButton.onClick.AddListener(() => _uiRoot?.ShowMarket());
         }
+
+        SharedUiSpriteUtil.ApplyBackIcon(backButton, spriteConfig);
     }
 
     private void OnEnable()

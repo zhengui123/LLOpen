@@ -9,11 +9,15 @@ using VContainer;
 /// </summary>
 public class MarketPage : MonoBehaviour
 {
+    [SerializeField] private DurianSpriteConfig spriteConfig;
     [SerializeField] private Text goldText;
+    [SerializeField] private Image goldIconImage;
     [SerializeField] private Button[] varietyButtons;
+    [SerializeField] private Image marketFrameImage;
     [SerializeField] private Image[] durianImages;
     [SerializeField] private Text[] priceTexts;
     [SerializeField] private Text[] appearanceTexts;
+    [SerializeField] private Image[] appearanceIcons;
     [SerializeField] private Button[] buyButtons;
     [SerializeField] private Button[] smellButtons;
     [SerializeField] private Button bagButton;
@@ -86,9 +90,12 @@ public class MarketPage : MonoBehaviour
         }
 
         EnsureReferences();
+        ApplyStaticUiSprites();
         BindButtons();
         RefreshGold();
         _marketManager?.RefreshMarket(VarietyType.JinZheng);
+        // RefreshMarket 会发事件，但 SubscribeEvents 在 Start 中更晚执行，首屏需直接刷卡片贴图
+        RefreshCards();
         _initialized = true;
     }
 
@@ -97,6 +104,16 @@ public class MarketPage : MonoBehaviour
         if (goldText == null)
         {
             goldText = transform.Find("Header/GoldText")?.GetComponent<Text>();
+        }
+
+        if (goldIconImage == null)
+        {
+            goldIconImage = transform.Find("Header/GoldIcon")?.GetComponent<Image>();
+        }
+
+        if (marketFrameImage == null)
+        {
+            marketFrameImage = transform.Find("CardRow/MarketFrame")?.GetComponent<Image>();
         }
 
         if (varietyButtons == null || varietyButtons.Length == 0)
@@ -131,6 +148,11 @@ public class MarketPage : MonoBehaviour
         if (appearanceTexts == null || appearanceTexts.Length == 0)
         {
             appearanceTexts = FindCardTexts("Appearance");
+        }
+
+        if (appearanceIcons == null || appearanceIcons.Length == 0)
+        {
+            appearanceIcons = FindCardImages("AppearanceIcon");
         }
 
         if (bagButton == null)
@@ -357,6 +379,52 @@ public class MarketPage : MonoBehaviour
         }
     }
 
+    private void ApplyStaticUiSprites()
+    {
+        if (spriteConfig == null)
+        {
+            return;
+        }
+
+        if (goldIconImage != null && spriteConfig.goldCoinIcon != null)
+        {
+            goldIconImage.sprite = spriteConfig.goldCoinIcon;
+            goldIconImage.color = Color.white;
+        }
+
+        if (marketFrameImage != null && spriteConfig.marketFrame != null)
+        {
+            marketFrameImage.sprite = spriteConfig.marketFrame;
+            marketFrameImage.color = Color.white;
+        }
+
+        if (varietyButtons != null)
+        {
+            foreach (var button in varietyButtons)
+            {
+                if (button == null)
+                {
+                    continue;
+                }
+
+                var image = button.GetComponent<Image>();
+                if (image != null && spriteConfig.varietyBtnBg != null)
+                {
+                    image.sprite = spriteConfig.varietyBtnBg;
+                    image.color = Color.white;
+                }
+            }
+        }
+
+        if (smellButtons != null)
+        {
+            foreach (var button in smellButtons)
+            {
+                SharedUiSpriteUtil.ApplyAdIcon(button, spriteConfig);
+            }
+        }
+    }
+
     private void RefreshGold()
     {
         var gold = PlayerData.Instance.Gold;
@@ -398,12 +466,34 @@ public class MarketPage : MonoBehaviour
             var durian = durians[i];
             if (durianImages != null && i < durianImages.Length && durianImages[i] != null)
             {
-                durianImages[i].color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
+                if (spriteConfig != null)
+                {
+                    durianImages[i].sprite = spriteConfig.GetUnopenedSprite(durian.variety, durian.appearance);
+                    durianImages[i].color = Color.white;
+                    durianImages[i].preserveAspect = true;
+                }
+                else
+                {
+                    durianImages[i].color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
+                }
             }
 
             if (appearanceTexts != null && i < appearanceTexts.Length && appearanceTexts[i] != null)
             {
                 appearanceTexts[i].text = DurianDisplayUtil.GetAppearanceName(durian.appearance);
+            }
+
+            if (appearanceIcons != null && i < appearanceIcons.Length && appearanceIcons[i] != null)
+            {
+                if (spriteConfig != null)
+                {
+                    appearanceIcons[i].sprite = spriteConfig.GetAppearanceIcon(durian.appearance);
+                    appearanceIcons[i].gameObject.SetActive(true);
+                }
+                else
+                {
+                    appearanceIcons[i].gameObject.SetActive(false);
+                }
             }
 
             var canAfford = PlayerData.Instance.Gold >= durian.finalPrice;

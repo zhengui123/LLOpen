@@ -9,11 +9,14 @@ using VContainer;
 /// </summary>
 public class SellPage : MonoBehaviour
 {
+    [SerializeField] private DurianSpriteConfig spriteConfig;
     [SerializeField] private Text summaryText;
+    [SerializeField] private Image ratingIcon;
     [SerializeField] private Text priceText;
     [SerializeField] private Text goldText;
     [SerializeField] private CanvasGroup goldCanvasGroup;
     [SerializeField] private Button adBonusButton;
+    [SerializeField] private Image adBonusIcon;
     [SerializeField] private Button confirmButton;
     [SerializeField] private Button backButton;
     [SerializeField] private float priceRollDuration = 0.4f;
@@ -88,7 +91,24 @@ public class SellPage : MonoBehaviour
         ResetGoldVisual();
         SetButtonsInteractable(true);
         ResetAdBonusButton();
+        ApplyStaticUiSprites();
         RefreshPrice();
+    }
+
+    private void ApplyStaticUiSprites()
+    {
+        if (spriteConfig == null)
+        {
+            return;
+        }
+
+        if (adBonusIcon != null && spriteConfig.watchAdIcon != null)
+        {
+            adBonusIcon.sprite = spriteConfig.watchAdIcon;
+            adBonusIcon.color = Color.white;
+        }
+
+        SharedUiSpriteUtil.ApplyBackIcon(backButton, spriteConfig);
     }
 
     private async void OnAdBonusClicked()
@@ -218,6 +238,19 @@ public class SellPage : MonoBehaviour
         if (summaryText != null)
         {
             summaryText.text = $"出肉率 {_currentDurian.yieldRate:F1}% · {_currentRating}";
+        }
+
+        if (ratingIcon != null)
+        {
+            if (spriteConfig != null && !string.IsNullOrEmpty(_currentRating))
+            {
+                ratingIcon.sprite = spriteConfig.GetRatingSprite(_currentRating);
+                ratingIcon.gameObject.SetActive(true);
+            }
+            else
+            {
+                ratingIcon.gameObject.SetActive(false);
+            }
         }
 
         if (priceText != null)

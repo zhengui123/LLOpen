@@ -51,6 +51,216 @@ public static class MvpSceneSetupEditor
         Debug.Log("[MvpSceneSetup] RoomMeat / RoomEmpty 已应用 FL-01 / FL-02 贴图。");
     }
 
+    [MenuItem("Tools/llopen/Wire Market Page References")]
+    public static void WireMarketPageReferences()
+    {
+        var page = Object.FindAnyObjectByType<MarketPage>(FindObjectsInactive.Include);
+        if (page == null)
+        {
+            Debug.LogWarning("[MvpSceneSetup] 当前场景未找到 MarketPage。");
+            return;
+        }
+
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+        var cardRow = page.transform.Find("CardRow");
+        var appearanceIcons = new Image[3];
+        if (cardRow != null)
+        {
+            for (var i = 0; i < cardRow.childCount && i < appearanceIcons.Length; i++)
+            {
+                appearanceIcons[i] = cardRow.GetChild(i).Find("AppearanceIcon")?.GetComponent<Image>();
+            }
+        }
+
+        var so = new SerializedObject(page);
+        so.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
+        so.FindProperty("goldIconImage").objectReferenceValue = page.transform.Find("Header/GoldIcon")?.GetComponent<Image>();
+        so.FindProperty("marketFrameImage").objectReferenceValue = page.transform.Find("CardRow/MarketFrame")?.GetComponent<Image>();
+        WireArray(so, "appearanceIcons", appearanceIcons);
+
+        var varietyRow = page.transform.Find("VarietyRow");
+        if (varietyRow != null && spriteConfig != null)
+        {
+            foreach (var button in varietyRow.GetComponentsInChildren<Button>(true))
+            {
+                var image = button.GetComponent<Image>();
+                if (image != null)
+                {
+                    image.sprite = spriteConfig.varietyBtnBg;
+                    image.color = Color.white;
+                }
+            }
+        }
+
+        so.ApplyModifiedPropertiesWithoutUndo();
+        EditorSceneManager.MarkSceneDirty(page.gameObject.scene);
+        Debug.Log("[MvpSceneSetup] MarketPage 贴图引用已连线。");
+    }
+
+    [MenuItem("Tools/llopen/Wire T5 Page References")]
+    public static void WireT5PageReferences()
+    {
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+
+        var openPage = Object.FindAnyObjectByType<OpenPage>(FindObjectsInactive.Include);
+        if (openPage != null)
+        {
+            var swipeGuide = openPage.transform.Find("SwipeGuide")?.GetComponent<Image>();
+            if (swipeGuide == null)
+            {
+                swipeGuide = CreateImage(openPage.transform, "SwipeGuide", Color.white,
+                    new Vector2(0.35f, 0.52f), new Vector2(0.65f, 0.58f));
+                swipeGuide.preserveAspect = true;
+                swipeGuide.gameObject.SetActive(false);
+            }
+
+            if (spriteConfig != null)
+            {
+                swipeGuide.sprite = spriteConfig.swipeGuideIcon;
+                swipeGuide.color = Color.white;
+            }
+
+            var opSo = new SerializedObject(openPage);
+            opSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
+            opSo.FindProperty("swipeGuideImage").objectReferenceValue = swipeGuide;
+            opSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        var bagPage = Object.FindAnyObjectByType<BagPage>(FindObjectsInactive.Include);
+        if (bagPage != null)
+        {
+            var bpSo = new SerializedObject(bagPage);
+            bpSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
+            bpSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        var sellPage = Object.FindAnyObjectByType<SellPage>(FindObjectsInactive.Include);
+        if (sellPage != null)
+        {
+            var ratingIcon = sellPage.transform.Find("RatingIcon")?.GetComponent<Image>();
+            if (ratingIcon == null)
+            {
+                ratingIcon = CreateImage(sellPage.transform, "RatingIcon", Color.white,
+                    new Vector2(0.12f, 0.7f), new Vector2(0.22f, 0.8f));
+                ratingIcon.preserveAspect = true;
+                ratingIcon.gameObject.SetActive(false);
+            }
+
+            var adBtn = sellPage.transform.Find("AdBonus");
+            var adBonusIcon = adBtn != null ? adBtn.Find("AdIcon")?.GetComponent<Image>() : null;
+            if (adBonusIcon == null && adBtn != null)
+            {
+                adBonusIcon = CreateImage(adBtn, "AdIcon", Color.white,
+                    new Vector2(0.04f, 0.15f), new Vector2(0.16f, 0.85f));
+                adBonusIcon.preserveAspect = true;
+            }
+
+            var spSo = new SerializedObject(sellPage);
+            spSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
+            spSo.FindProperty("ratingIcon").objectReferenceValue = ratingIcon;
+            spSo.FindProperty("adBonusIcon").objectReferenceValue = adBonusIcon;
+            spSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        var backButton = openPage != null ? openPage.transform.Find("Back")?.GetComponent<Button>() : null;
+        EnsureBackIcon(backButton, spriteConfig);
+
+        if (sellPage != null && spriteConfig != null)
+        {
+            var adIcon = sellPage.transform.Find("AdBonus/AdIcon")?.GetComponent<Image>();
+            if (adIcon != null)
+            {
+                adIcon.sprite = spriteConfig.watchAdIcon;
+                adIcon.color = Color.white;
+            }
+        }
+
+        ApplyBagCardPrefabSprites(spriteConfig);
+
+        if (openPage != null)
+        {
+            EditorSceneManager.MarkSceneDirty(openPage.gameObject.scene);
+        }
+
+        Debug.Log("[MvpSceneSetup] Open/Bag/Sell 页 T5 引用已连线。");
+    }
+
+    private static void ApplyBagCardPrefabSprites(DurianSpriteConfig config)
+    {
+        if (config == null)
+        {
+            return;
+        }
+
+        var path = $"{PrefabDir}/BagCard.prefab";
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        if (prefab == null)
+        {
+            return;
+        }
+
+        var root = PrefabUtility.LoadPrefabContents(path);
+        var block = root.transform.Find("Block")?.GetComponent<Image>();
+        if (block != null)
+        {
+            block.preserveAspect = true;
+            block.color = Color.white;
+        }
+
+        var iconTransform = root.transform.Find("AppearanceIcon");
+        if (iconTransform == null)
+        {
+            var iconGo = new GameObject("AppearanceIcon");
+            iconGo.transform.SetParent(root.transform, false);
+            var iconRect = iconGo.AddComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.62f, 0.72f);
+            iconRect.anchorMax = new Vector2(0.92f, 0.92f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var iconImage = iconGo.AddComponent<Image>();
+            iconImage.preserveAspect = true;
+            iconImage.raycastTarget = false;
+            iconImage.gameObject.SetActive(false);
+        }
+
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        PrefabUtility.UnloadPrefabContents(root);
+    }
+
+    [MenuItem("Tools/llopen/Wire T6 Shared UI Icons")]
+    public static void WireT6SharedUiIcons()
+    {
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+        var buttons = Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var backCount = 0;
+        var adCount = 0;
+
+        foreach (var button in buttons)
+        {
+            if (button == null)
+            {
+                continue;
+            }
+
+            switch (button.name)
+            {
+                case "Back":
+                    EnsureBackIcon(button, spriteConfig);
+                    backCount++;
+                    break;
+                case "Smell":
+                case "Revive":
+                case "AdBonus":
+                    EnsureAdIcon(button, spriteConfig);
+                    adCount++;
+                    break;
+            }
+        }
+
+        EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+        Debug.Log($"[MvpSceneSetup] T6 共用 UI 已绑定：BackIcon×{backCount}，AdIcon×{adCount}。");
+    }
+
     [MenuItem("Tools/llopen/Setup MVP Scene")]
     public static void SetupMvpScene()
     {
@@ -173,10 +383,19 @@ public static class MvpSceneSetupEditor
         var page = CreatePanel(parent, "MarketPage", fullStretch: true);
         page.AddComponent<MarketPage>();
         var mp = page.GetComponent<MarketPage>();
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
 
         var header = CreatePanel(page.transform, "Header", false, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -60), new Vector2(0, 0));
+        var goldIcon = CreateImage(header.transform, "GoldIcon", Color.white,
+            new Vector2(0.02f, 0.15f), new Vector2(0.12f, 0.85f));
+        goldIcon.preserveAspect = true;
+        if (spriteConfig != null)
+        {
+            goldIcon.sprite = spriteConfig.goldCoinIcon;
+        }
+
         var goldText = CreateText(header.transform, "GoldText", "金币 200", 28, TextAnchor.MiddleLeft);
-        Stretch(goldText.rectTransform, 20, 10, -20, -10);
+        Stretch(goldText.rectTransform, 80, 10, -20, -10);
 
         var varietyRow = CreatePanel(page.transform, "VarietyRow", false,
             new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -140), new Vector2(0, -70));
@@ -187,11 +406,26 @@ public static class MvpSceneSetupEditor
             varietyButtons[i] = CreateButton(varietyRow.transform, $"Variety_{i}", names[i],
                 new Vector2(0.02f + i * 0.33f, 0.1f), new Vector2(0.31f + i * 0.33f, 0.9f),
                 new Color(0.2f, 0.45f, 0.75f));
+            if (spriteConfig != null)
+            {
+                var varietyImage = varietyButtons[i].GetComponent<Image>();
+                varietyImage.sprite = spriteConfig.varietyBtnBg;
+                varietyImage.color = Color.white;
+            }
         }
 
         var cardRow = CreatePanel(page.transform, "CardRow", false,
             new Vector2(0, 0.25f), new Vector2(1, 0.85f), Vector2.zero, Vector2.zero);
+        var marketFrame = CreateImage(cardRow.transform, "MarketFrame", Color.white, Vector2.zero, Vector2.one);
+        marketFrame.transform.SetAsFirstSibling();
+        marketFrame.raycastTarget = false;
+        if (spriteConfig != null)
+        {
+            marketFrame.sprite = spriteConfig.marketFrame;
+        }
+
         var images = new Image[3];
+        var appearanceIcons = new Image[3];
         var priceTexts = new Text[3];
         var appearanceTexts = new Text[3];
         var buyButtons = new Button[3];
@@ -205,6 +439,13 @@ public static class MvpSceneSetupEditor
 
             images[i] = CreateImage(card.transform, "DurianImage", new Color(0.3f, 0.65f, 0.35f),
                 new Vector2(0.1f, 0.35f), new Vector2(0.9f, 0.95f));
+            images[i].preserveAspect = true;
+            appearanceIcons[i] = CreateImage(card.transform, "AppearanceIcon", Color.white,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            appearanceIcons[i].rectTransform.sizeDelta = new Vector2(100f, 100f);
+            appearanceIcons[i].rectTransform.anchoredPosition = new Vector2(100f, -250f);
+            appearanceIcons[i].rectTransform.localScale = Vector3.one;
+            appearanceIcons[i].preserveAspect = true;
             appearanceTexts[i] = CreateText(card.transform, "Appearance", "Normal", 20, TextAnchor.MiddleCenter,
                 new Vector2(0.05f, 0.22f), new Vector2(0.95f, 0.34f));
             priceTexts[i] = CreateText(card.transform, "Price", "80", 24, TextAnchor.MiddleCenter,
@@ -213,6 +454,7 @@ public static class MvpSceneSetupEditor
                 new Vector2(0.5f, 0.08f), new Vector2(0.95f, 0.22f), new Color(0.85f, 0.35f, 0.15f));
             smellButtons[i] = CreateButton(card.transform, "Smell", "试闻",
                 new Vector2(0.05f, 0.02f), new Vector2(0.95f, 0.08f), new Color(0.35f, 0.35f, 0.4f));
+            EnsureAdIcon(smellButtons[i], spriteConfig);
         }
 
         var footer = CreatePanel(page.transform, "Footer", false,
@@ -223,10 +465,14 @@ public static class MvpSceneSetupEditor
             new Vector2(0.7f, 0.2f), new Vector2(0.95f, 0.8f), new Color(0.55f, 0.3f, 0.7f));
 
         var so = new SerializedObject(mp);
+        so.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
         so.FindProperty("goldText").objectReferenceValue = goldText;
+        so.FindProperty("goldIconImage").objectReferenceValue = goldIcon;
+        so.FindProperty("marketFrameImage").objectReferenceValue = marketFrame;
         so.FindProperty("varietyButtons").arraySize = 3;
         for (var i = 0; i < 3; i++) so.FindProperty("varietyButtons").GetArrayElementAtIndex(i).objectReferenceValue = varietyButtons[i];
         WireArray(so, "durianImages", images);
+        WireArray(so, "appearanceIcons", appearanceIcons);
         WireArray(so, "priceTexts", priceTexts);
         WireArray(so, "appearanceTexts", appearanceTexts);
         WireArray(so, "buyButtons", buyButtons);
@@ -250,8 +496,13 @@ public static class MvpSceneSetupEditor
 
         var durianImage = CreateImage(page.transform, "DurianImage", new Color(0.3f, 0.65f, 0.35f),
             new Vector2(0.15f, 0.25f), new Vector2(0.85f, 0.75f));
+        durianImage.preserveAspect = true;
         var guideText = CreateText(page.transform, "Guide", "在榴莲顶部滑动开果", 26, TextAnchor.MiddleCenter,
             new Vector2(0.1f, 0.18f), new Vector2(0.9f, 0.24f));
+        var swipeGuideImage = CreateImage(page.transform, "SwipeGuide", Color.white,
+            new Vector2(0.35f, 0.52f), new Vector2(0.65f, 0.58f));
+        swipeGuideImage.preserveAspect = true;
+        swipeGuideImage.gameObject.SetActive(false);
         var estimateText = CreateText(page.transform, "Estimate", "出肉率约 --% · 估价 -- 金币", 22, TextAnchor.UpperRight,
             new Vector2(0.55f, 0.76f), new Vector2(0.95f, 0.92f));
 
@@ -333,8 +584,14 @@ public static class MvpSceneSetupEditor
             new Vector2(0.3f, 0.12f), new Vector2(0.7f, 0.18f), new Color(0.85f, 0.55f, 0.1f));
         var reviveButton = CreateButton(page.transform, "Revive", "看广告复活",
             new Vector2(0.3f, 0.02f), new Vector2(0.7f, 0.08f), new Color(0.75f, 0.2f, 0.2f));
+        EnsureAdIcon(reviveButton, spriteConfig);
         var backButton = CreateButton(page.transform, "Back", "返回市场",
             new Vector2(0.02f, 0.92f), new Vector2(0.2f, 0.98f), new Color(0.35f, 0.35f, 0.4f));
+        EnsureBackIcon(backButton, spriteConfig);
+        if (spriteConfig != null)
+        {
+            swipeGuideImage.sprite = spriteConfig.swipeGuideIcon;
+        }
 
         var knifeSo = new SerializedObject(knife);
         knifeSo.FindProperty("durianOpener").objectReferenceValue = opener;
@@ -363,8 +620,10 @@ public static class MvpSceneSetupEditor
         var opSo = new SerializedObject(op);
         opSo.FindProperty("knifeTool").objectReferenceValue = knife;
         opSo.FindProperty("durianOpener").objectReferenceValue = opener;
+        opSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
         opSo.FindProperty("durianImage").objectReferenceValue = durianImage;
         opSo.FindProperty("guideText").objectReferenceValue = guideText;
+        opSo.FindProperty("swipeGuideImage").objectReferenceValue = swipeGuideImage;
         opSo.FindProperty("estimateText").objectReferenceValue = estimateText;
         opSo.FindProperty("sellButton").objectReferenceValue = sellButton;
         opSo.FindProperty("reviveButton").objectReferenceValue = reviveButton;
@@ -379,6 +638,12 @@ public static class MvpSceneSetupEditor
         var page = CreatePanel(parent, "SellPage", fullStretch: true);
         page.AddComponent<SellPage>();
         var sp = page.GetComponent<SellPage>();
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+
+        var ratingIcon = CreateImage(page.transform, "RatingIcon", Color.white,
+            new Vector2(0.12f, 0.7f), new Vector2(0.22f, 0.8f));
+        ratingIcon.preserveAspect = true;
+        ratingIcon.gameObject.SetActive(false);
 
         var summary = CreateText(page.transform, "Summary", "出肉率 --", 28, TextAnchor.MiddleCenter,
             new Vector2(0.1f, 0.7f), new Vector2(0.9f, 0.8f));
@@ -390,17 +655,23 @@ public static class MvpSceneSetupEditor
         goldCanvasGroup.alpha = 0f;
         var adBtn = CreateButton(page.transform, "AdBonus", "看广告加价+20%",
             new Vector2(0.15f, 0.25f), new Vector2(0.85f, 0.35f), new Color(0.2f, 0.5f, 0.8f));
+        var adBonusIcon = EnsureAdIcon(adBtn, spriteConfig);
+
         var confirmBtn = CreateButton(page.transform, "Confirm", "确认卖出",
             new Vector2(0.15f, 0.12f), new Vector2(0.85f, 0.22f), new Color(0.85f, 0.55f, 0.1f));
         var backBtn = CreateButton(page.transform, "Back", "返回",
             new Vector2(0.02f, 0.92f), new Vector2(0.18f, 0.98f), new Color(0.35f, 0.35f, 0.4f));
+        EnsureBackIcon(backBtn, spriteConfig);
 
         var so = new SerializedObject(sp);
+        so.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
         so.FindProperty("summaryText").objectReferenceValue = summary;
+        so.FindProperty("ratingIcon").objectReferenceValue = ratingIcon;
         so.FindProperty("priceText").objectReferenceValue = price;
         so.FindProperty("goldText").objectReferenceValue = goldAnim;
         so.FindProperty("goldCanvasGroup").objectReferenceValue = goldCanvasGroup;
         so.FindProperty("adBonusButton").objectReferenceValue = adBtn;
+        so.FindProperty("adBonusIcon").objectReferenceValue = adBonusIcon;
         so.FindProperty("confirmButton").objectReferenceValue = confirmBtn;
         so.FindProperty("backButton").objectReferenceValue = backBtn;
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -412,6 +683,7 @@ public static class MvpSceneSetupEditor
         var page = CreatePanel(parent, "BagPage", fullStretch: true);
         page.AddComponent<BagPage>();
         var bp = page.GetComponent<BagPage>();
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
 
         var capacity = CreateText(page.transform, "Capacity", "0/10", 26, TextAnchor.UpperLeft,
             new Vector2(0.05f, 0.9f), new Vector2(0.4f, 0.98f));
@@ -427,8 +699,10 @@ public static class MvpSceneSetupEditor
             new Vector2(0.3f, 0.3f), new Vector2(0.7f, 0.4f), new Color(0.3f, 0.65f, 0.35f));
         var backBtn = CreateButton(page.transform, "Back", "返回",
             new Vector2(0.02f, 0.92f), new Vector2(0.18f, 0.98f), new Color(0.35f, 0.35f, 0.4f));
+        EnsureBackIcon(backBtn, spriteConfig);
 
         var so = new SerializedObject(bp);
+        so.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
         so.FindProperty("capacityText").objectReferenceValue = capacity;
         so.FindProperty("cardRoot").objectReferenceValue = cardRoot.transform;
         so.FindProperty("cardPrefab").objectReferenceValue = cardPrefab;
@@ -444,6 +718,7 @@ public static class MvpSceneSetupEditor
         var page = CreatePanel(parent, "ShopPage", fullStretch: true);
         page.AddComponent<ShopPage>();
         var sp = page.GetComponent<ShopPage>();
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
 
         var level = CreateText(page.transform, "Level", "商店 Lv.1", 30, TextAnchor.MiddleCenter,
             new Vector2(0.2f, 0.7f), new Vector2(0.8f, 0.8f));
@@ -453,12 +728,14 @@ public static class MvpSceneSetupEditor
             new Vector2(0.2f, 0.35f), new Vector2(0.8f, 0.48f), new Color(0.55f, 0.3f, 0.7f));
         var backBtn = CreateButton(page.transform, "Back", "返回",
             new Vector2(0.02f, 0.92f), new Vector2(0.18f, 0.98f), new Color(0.35f, 0.35f, 0.4f));
+        EnsureBackIcon(backBtn, spriteConfig);
 
         var so = new SerializedObject(sp);
         so.FindProperty("levelText").objectReferenceValue = level;
         so.FindProperty("effectText").objectReferenceValue = effect;
         so.FindProperty("upgradeButton").objectReferenceValue = upgrade;
         so.FindProperty("backButton").objectReferenceValue = backBtn;
+        so.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
         so.ApplyModifiedPropertiesWithoutUndo();
         return page;
     }
@@ -679,6 +956,55 @@ public static class MvpSceneSetupEditor
         PrefabUtility.UnloadPrefabContents(root);
     }
 
+    private static Image EnsureBackIcon(Button button, DurianSpriteConfig config)
+    {
+        if (button == null)
+        {
+            return null;
+        }
+
+        var icon = button.transform.Find("BackIcon")?.GetComponent<Image>();
+        if (icon == null)
+        {
+            icon = CreateImage(button.transform, "BackIcon", Color.white,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f));
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
+        }
+
+        if (config != null && config.backArrowIcon != null)
+        {
+            SharedUiSpriteUtil.ApplyBackIcon(button, config);
+        }
+
+        return icon;
+    }
+
+    private static Image EnsureAdIcon(Button button, DurianSpriteConfig config)
+    {
+        if (button == null)
+        {
+            return null;
+        }
+
+        var icon = button.transform.Find("AdIcon")?.GetComponent<Image>();
+        if (icon == null)
+        {
+            icon = CreateImage(button.transform, "AdIcon", Color.white,
+                new Vector2(0.04f, 0.15f), new Vector2(0.22f, 0.85f));
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
+        }
+
+        if (config != null && config.watchAdIcon != null)
+        {
+            icon.sprite = config.watchAdIcon;
+            icon.color = Color.white;
+        }
+
+        return icon;
+    }
+
     private static GameObject CreateBlockPrefab(string name, Color color, Vector2 size)
     {
         var path = $"{PrefabDir}/{name}.prefab";
@@ -739,7 +1065,13 @@ public static class MvpSceneSetupEditor
         blockRect.anchorMax = new Vector2(0.9f, 0.9f);
         blockRect.offsetMin = Vector2.zero;
         blockRect.offsetMax = Vector2.zero;
-        block.AddComponent<Image>().color = new Color(0.3f, 0.65f, 0.35f);
+        var blockImage = block.AddComponent<Image>();
+        blockImage.color = new Color(0.3f, 0.65f, 0.35f);
+        blockImage.preserveAspect = true;
+        var appearanceIcon = CreateImage(go.transform, "AppearanceIcon", Color.white,
+            new Vector2(0.62f, 0.72f), new Vector2(0.92f, 0.92f));
+        appearanceIcon.preserveAspect = true;
+        appearanceIcon.gameObject.SetActive(false);
         CreateText(go.transform, "VarietyText", "金枕", 20, TextAnchor.MiddleCenter,
             new Vector2(0.05f, 0.52f), new Vector2(0.95f, 0.72f));
         CreateText(go.transform, "InfoText", "普通 · 购价 50 · 出肉约 40%", 14, TextAnchor.MiddleCenter,

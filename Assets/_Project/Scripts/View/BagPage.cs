@@ -9,6 +9,7 @@ using VContainer;
 /// </summary>
 public class BagPage : MonoBehaviour
 {
+    [SerializeField] private DurianSpriteConfig spriteConfig;
     [SerializeField] private Text capacityText;
     [SerializeField] private Transform cardRoot;
     [SerializeField] private GameObject cardPrefab;
@@ -105,7 +106,30 @@ public class BagPage : MonoBehaviour
         var blockImage = card.transform.Find("Block")?.GetComponent<Image>();
         if (blockImage != null)
         {
-            blockImage.color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
+            if (spriteConfig != null)
+            {
+                blockImage.sprite = spriteConfig.GetUnopenedSprite(durian.variety, durian.appearance);
+                blockImage.color = Color.white;
+                blockImage.preserveAspect = true;
+            }
+            else
+            {
+                blockImage.color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
+            }
+        }
+
+        var appearanceIcon = card.transform.Find("AppearanceIcon")?.GetComponent<Image>();
+        if (appearanceIcon != null)
+        {
+            if (spriteConfig != null)
+            {
+                appearanceIcon.sprite = spriteConfig.GetAppearanceIcon(durian.appearance);
+                appearanceIcon.gameObject.SetActive(true);
+            }
+            else
+            {
+                appearanceIcon.gameObject.SetActive(false);
+            }
         }
 
         var varietyText = card.transform.Find("VarietyText")?.GetComponent<Text>();
