@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 划刀交互：检测顶部滑动、绘制裂缝线，达到阈值后触发开果。
+/// 划刀交互：检测顶部滑动、绘制裂缝线，滑动距离映射开裂进度，达到阈值后触发开果。
 /// </summary>
 [RequireComponent(typeof(LineRenderer))]
 public class KnifeTool : MonoBehaviour
@@ -21,8 +21,7 @@ public class KnifeTool : MonoBehaviour
     [SerializeField] private float knifeFadeDuration = 0.3f;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip crackClip;
-    [SerializeField] private float shellWidth = 4f;
-    [SerializeField] private float swipeThresholdRatio = 0.8f;
+    [SerializeField] private float swipeThreshold = 200f;
     [SerializeField] private float shakeDuration = 0.15f;
     [SerializeField] private float shakeMagnitude = 0.08f;
     [SerializeField] private float crackPulseDuration = 0.12f;
@@ -31,6 +30,7 @@ public class KnifeTool : MonoBehaviour
     private DurianData _currentDurian;
     private bool _isSwiping;
     private bool _hasOpened;
+    private Vector2 _swipeStartScreen;
     private Vector3 _swipeStartWorld;
     private float _swipeDistance;
     private float _defaultLineWidth = 0.05f;
@@ -129,12 +129,14 @@ public class KnifeTool : MonoBehaviour
         }
 
         _isSwiping = true;
+        _swipeStartScreen = screenPosition;
         _swipeStartWorld = ScreenToWorld(screenPosition);
         _swipeDistance = 0f;
         _crackPoints.Clear();
         _crackPoints.Add(_swipeStartWorld);
         UpdateCrackLine();
         ShowKnifeAt(screenPosition);
+        ApplyCrackProgress();
         SwipeStarted?.Invoke();
     }
 
@@ -143,12 +145,19 @@ public class KnifeTool : MonoBehaviour
         UpdateKnifePosition(screenPosition);
 
         var worldPos = ScreenToWorld(screenPosition);
-        _swipeDistance = Vector3.Distance(_swipeStartWorld, worldPos);
+        _swipeDistance = Mathf.Abs(screenPosition.y - _swipeStartScreen.y);
 
         if (_crackPoints.Count == 0 || Vector3.Distance(_crackPoints[^1], worldPos) > 0.05f)
         {
             _crackPoints.Add(worldPos);
             UpdateCrackLine();
+        }
+
+        ApplyCrackProgress();
+
+        if (_swipeDistance >= swipeThreshold)
+        {
+            CompleteSwipe().Forget();
         }
     }
 
@@ -156,21 +165,54 @@ public class KnifeTool : MonoBehaviour
     {
         _isSwiping = false;
 
-        if (_swipeDistance < shellWidth * swipeThresholdRatio)
+        if (_hasOpened)
         {
-            HideKnifeImmediate();
             return;
         }
 
+        if (_swipeDistance < swipeThreshold)
+        {
+            HideKnifeImmediate();
+            if (durianOpener != null)
+            {
+                durianOpener.UpdateCrackProgress(0f);
+            }
+
+            return;
+        }
+
+        await CompleteSwipe();
+    }
+
+    private async UniTask CompleteSwipe()
+    {
+        if (_hasOpened)
+        {
+            return;
+        }
+
+        _isSwiping = false;
         _hasOpened = true;
         enabled = false;
+
         FadeOutKnife().Forget();
         PlayCrackFeedback().Forget();
 
         if (durianOpener != null)
         {
-            await durianOpener.OpenAsync(_currentDurian);
+            await durianOpener.OnSwipeComplete(_currentDurian);
         }
+    }
+
+    private void ApplyCrackProgress()
+    {
+        if (durianOpener == null || swipeThreshold <= 0f)
+        {
+            return;
+        }
+
+        var progress = Mathf.Clamp01(_swipeDistance / swipeThreshold);
+        durianOpener.UpdateCrackProgress(progress);
     }
 
     private async UniTaskVoid PlayCrackFeedback()

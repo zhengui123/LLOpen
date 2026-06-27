@@ -5,7 +5,7 @@ public class PlayerData
 {
     public static PlayerData Instance = new PlayerData();
 
-    public int Gold { get; set; } = 200;
+    public int Gold { get; set; }
     public int DailyAdCount { get; set; } = 0;
     public float DailyBuff { get; set; } = 0f;
 }

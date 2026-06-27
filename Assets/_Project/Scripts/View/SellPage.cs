@@ -5,16 +5,20 @@ using UnityEngine.UI;
 using VContainer;
 
 /// <summary>
-/// 售卖页：固定回收价、看广告加价、确认卖出与金币 DOTween 动画。
+/// 售卖页：金币飞行动画、出肉回顾、看广告加价、确认卖出。
 /// </summary>
 public class SellPage : MonoBehaviour
 {
     [SerializeField] private DurianSpriteConfig spriteConfig;
     [SerializeField] private Text summaryText;
     [SerializeField] private Image ratingIcon;
+    [SerializeField] private Image durianResultImage;
+    [SerializeField] private Transform roomReviewRoot;
     [SerializeField] private Text priceText;
     [SerializeField] private Text goldText;
     [SerializeField] private CanvasGroup goldCanvasGroup;
+    [SerializeField] private RectTransform coinFlyTarget;
+    [SerializeField] private Transform coinParticleRoot;
     [SerializeField] private Button adBonusButton;
     [SerializeField] private Image adBonusIcon;
     [SerializeField] private Button confirmButton;
@@ -32,6 +36,7 @@ public class SellPage : MonoBehaviour
     private string _currentRating;
     private Vector2 _goldOriginAnchoredPos;
     private Sequence _activeSequence;
+    private Tween _adPulseTween;
     private bool _isSelling;
     private bool _adBonusApplied;
 
@@ -50,6 +55,7 @@ public class SellPage : MonoBehaviour
 
     private void Awake()
     {
+        EnsureReferences();
         EnsureGoldCanvasGroup();
 
         if (goldText != null)
@@ -92,7 +98,45 @@ public class SellPage : MonoBehaviour
         SetButtonsInteractable(true);
         ResetAdBonusButton();
         ApplyStaticUiSprites();
+        RefreshDurianVisual();
+        RefreshRoomReview();
         RefreshPrice();
+        StartAdBonusPulse();
+    }
+
+    private void EnsureReferences()
+    {
+        if (durianResultImage == null)
+        {
+            durianResultImage = transform.Find("DurianResultImage")?.GetComponent<Image>();
+        }
+
+        if (roomReviewRoot == null)
+        {
+            roomReviewRoot = transform.Find("RoomReviewRow");
+        }
+
+        if (coinParticleRoot == null)
+        {
+            coinParticleRoot = transform.Find("CoinParticleRoot");
+        }
+
+        if (coinFlyTarget == null)
+        {
+            coinFlyTarget = transform.Find("CoinFlyTarget")?.GetComponent<RectTransform>();
+        }
+
+        if (coinParticleRoot == null)
+        {
+            var rootGo = new GameObject("CoinParticleRoot", typeof(RectTransform));
+            rootGo.transform.SetParent(transform, false);
+            var rect = rootGo.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            coinParticleRoot = rootGo.transform;
+        }
     }
 
     private void ApplyStaticUiSprites()
@@ -109,6 +153,46 @@ public class SellPage : MonoBehaviour
         }
 
         SharedUiSpriteUtil.ApplyBackIcon(backButton, spriteConfig);
+    }
+
+    private void RefreshDurianVisual()
+    {
+        if (durianResultImage == null || spriteConfig == null)
+        {
+            return;
+        }
+
+        durianResultImage.sprite = spriteConfig.GetOpenedSprite(_currentDurian.variety, _currentDurian.yieldGrade);
+        durianResultImage.color = Color.white;
+        durianResultImage.preserveAspect = true;
+        durianResultImage.gameObject.SetActive(durianResultImage.sprite != null);
+    }
+
+    private void RefreshRoomReview()
+    {
+        if (roomReviewRoot == null || _currentDurian.roomResults == null || spriteConfig == null)
+        {
+            return;
+        }
+
+        for (var i = roomReviewRoot.childCount - 1; i >= 0; i--)
+        {
+            Destroy(roomReviewRoot.GetChild(i).gameObject);
+        }
+
+        var roomResults = _currentDurian.roomResults;
+        for (var i = 0; i < roomResults.Length; i++)
+        {
+            var iconGo = new GameObject($"Room_{i}", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(roomReviewRoot, false);
+            var rect = iconGo.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(36f, 36f);
+
+            var image = iconGo.GetComponent<Image>();
+            image.sprite = roomResults[i] ? spriteConfig.fleshPiece : spriteConfig.emptyPiece;
+            image.color = Color.white;
+            image.preserveAspect = true;
+        }
     }
 
     private async void OnAdBonusClicked()
@@ -130,6 +214,7 @@ public class SellPage : MonoBehaviour
 
         AnimatePriceRoll(oldPrice, newPrice);
         SetAdBonusApplied();
+        StopAdBonusPulse();
     }
 
     private async void OnConfirmSell()
@@ -141,12 +226,19 @@ public class SellPage : MonoBehaviour
 
         _isSelling = true;
         SetButtonsInteractable(false);
+        StopAdBonusPulse();
 
         var price = _sellManager.CalculateSellPrice(_currentDurian);
+        var goldBefore = PlayerData.Instance.Gold;
+
+        var startPos = GetCoinStartWorldPosition();
+        var targetPos = GetCoinTargetWorldPosition();
+        await PlayCoinAnimation(price, startPos, targetPos);
+
         _sellManager.SellDurian(_currentDurian);
         RemoveFromBag(_currentDurian);
 
-        await PlayGoldAnimAsync(price);
+        await PlayGoldCounterAsync(goldBefore, PlayerData.Instance.Gold, price);
         _uiRoot.ShowMarket();
         _isSelling = false;
     }
@@ -155,10 +247,77 @@ public class SellPage : MonoBehaviour
     {
         _sellManager.ClearTemporaryBonus();
         KillTweens();
+        StopAdBonusPulse();
         _uiRoot?.ShowMarket();
     }
 
-    private async UniTask PlayGoldAnimAsync(int targetPrice)
+    private Vector3 GetCoinStartWorldPosition()
+    {
+        if (durianResultImage != null)
+        {
+            return durianResultImage.rectTransform.position;
+        }
+
+        if (ratingIcon != null)
+        {
+            return ratingIcon.rectTransform.position;
+        }
+
+        return transform.position;
+    }
+
+    private Vector3 GetCoinTargetWorldPosition()
+    {
+        if (coinFlyTarget != null)
+        {
+            return coinFlyTarget.position;
+        }
+
+        return transform.position + new Vector3(0f, 300f, 0f);
+    }
+
+    private async UniTask PlayCoinAnimation(int amount, Vector3 startPos, Vector3 targetPos)
+    {
+        if (spriteConfig == null || coinParticleRoot == null)
+        {
+            return;
+        }
+
+        var coinSprite = spriteConfig.goldCoinParticle != null
+            ? spriteConfig.goldCoinParticle
+            : spriteConfig.goldCoinIcon;
+
+        if (coinSprite == null)
+        {
+            return;
+        }
+
+        var coinCount = Mathf.Clamp(amount / 50, 1, 10);
+        for (var i = 0; i < coinCount; i++)
+        {
+            var coinObj = new GameObject("CoinParticle", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            coinObj.transform.SetParent(coinParticleRoot, false);
+            coinObj.transform.position = startPos + (Vector3)Random.insideUnitCircle * 12f;
+
+            var image = coinObj.GetComponent<Image>();
+            image.sprite = coinSprite;
+            image.color = Color.white;
+            image.raycastTarget = false;
+            var rect = coinObj.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(48f, 48f);
+
+            coinObj.transform.DOScale(0.3f, 0.5f).SetEase(Ease.InQuad);
+            coinObj.transform.DOMove(targetPos, 0.5f)
+                .SetEase(Ease.InBack)
+                .OnComplete(() => Destroy(coinObj));
+
+            await UniTask.Delay(80);
+        }
+
+        await UniTask.Delay(350);
+    }
+
+    private async UniTask PlayGoldCounterAsync(int goldBefore, int goldAfter, int addedGold)
     {
         if (goldText == null)
         {
@@ -169,28 +328,40 @@ public class SellPage : MonoBehaviour
         var goldRect = goldText.rectTransform;
         goldRect.anchoredPosition = _goldOriginAnchoredPos;
         goldText.gameObject.SetActive(true);
-        goldCanvasGroup.alpha = 0f;
+        goldCanvasGroup.alpha = 1f;
 
-        var displayValue = 0f;
+        var displayGold = (float)goldBefore;
+        var displayAdded = 0f;
         KillTweens();
 
         _activeSequence = DOTween.Sequence();
-        _activeSequence.Append(goldCanvasGroup.DOFade(1f, 0.25f));
-        _activeSequence.Join(DOTween.To(
-            () => displayValue,
+        _activeSequence.Append(DOTween.To(
+            () => displayAdded,
             value =>
             {
-                displayValue = value;
+                displayAdded = value;
                 goldText.text = $"+{Mathf.RoundToInt(value)}";
             },
-            targetPrice,
+            addedGold,
+            goldAnimDuration * 0.6f).SetEase(Ease.OutCubic));
+        _activeSequence.Join(DOTween.To(
+            () => displayGold,
+            value =>
+            {
+                displayGold = value;
+                if (summaryText != null)
+                {
+                    summaryText.text = $"金币 {Mathf.RoundToInt(value)}";
+                }
+            },
+            goldAfter,
             goldAnimDuration).SetEase(Ease.OutCubic));
         _activeSequence.Join(goldRect
             .DOAnchorPosY(_goldOriginAnchoredPos.y + goldFloatOffset, goldAnimDuration)
             .SetEase(Ease.OutCubic));
         _activeSequence.Join(goldText.transform
             .DOPunchScale(Vector3.one * 0.2f, 0.4f, 6, 0.5f));
-        _activeSequence.AppendInterval(0.4f);
+        _activeSequence.AppendInterval(0.35f);
 
         await _activeSequence.AsyncWaitForCompletion();
     }
@@ -211,7 +382,7 @@ public class SellPage : MonoBehaviour
             value =>
             {
                 displayValue = value;
-                priceText.text = $"固定回收价 {Mathf.RoundToInt(value)} 金币";
+                priceText.text = $"回收价 {Mathf.RoundToInt(value)} 金币";
             },
             toPrice,
             priceRollDuration)
@@ -255,7 +426,7 @@ public class SellPage : MonoBehaviour
 
         if (priceText != null)
         {
-            priceText.text = $"固定回收价 {_sellManager.CalculateSellPrice(_currentDurian)} 金币";
+            priceText.text = $"回收价 {_sellManager.CalculateSellPrice(_currentDurian)} 金币";
         }
     }
 
@@ -324,6 +495,32 @@ public class SellPage : MonoBehaviour
         }
     }
 
+    private void StartAdBonusPulse()
+    {
+        if (adBonusButton == null || _adBonusApplied)
+        {
+            return;
+        }
+
+        StopAdBonusPulse();
+        adBonusButton.transform.localScale = Vector3.one;
+        _adPulseTween = adBonusButton.transform
+            .DOScale(1.06f, 0.55f)
+            .SetLoops(-1, LoopType.Yoyo)
+            .SetEase(Ease.InOutSine);
+    }
+
+    private void StopAdBonusPulse()
+    {
+        _adPulseTween?.Kill();
+        _adPulseTween = null;
+
+        if (adBonusButton != null)
+        {
+            adBonusButton.transform.localScale = Vector3.one;
+        }
+    }
+
     private void EnsureGoldCanvasGroup()
     {
         if (goldText == null)
@@ -367,6 +564,7 @@ public class SellPage : MonoBehaviour
     private void OnDisable()
     {
         KillTweens();
+        StopAdBonusPulse();
     }
 
     public DurianData CurrentDurian => _currentDurian;

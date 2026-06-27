@@ -18,7 +18,8 @@ public class AdManager
         { "sel_bonus", 5 },
         { "revive", 3 },
         { "daily_buff", 1 },
-        { "free_smell", -1 }
+        { "free_smell", -1 },
+        { "refresh_market", -1 }
     };
 
     public bool CanShowAd(string adType)

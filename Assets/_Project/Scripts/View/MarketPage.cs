@@ -22,27 +22,37 @@ public class MarketPage : MonoBehaviour
     [SerializeField] private Button[] smellButtons;
     [SerializeField] private Button bagButton;
     [SerializeField] private Button shopButton;
+    [SerializeField] private Button refreshButton;
+    [SerializeField] private Image refreshButtonImage;
+    [SerializeField] private Text refreshButtonText;
 
     private MarketManager _marketManager;
     private BagManager _bagManager;
     private AdManager _adManager;
     private GameUIRoot _uiRoot;
+    private GameEconomyConfig _economyConfig;
     private IDisposable _refreshedSub;
     private IDisposable _purchasedSub;
     private bool _initialized;
     private int _lastGold = -1;
+    private VarietyType _highlightedVariety = VarietyType.JinZheng;
+
+    private static readonly Color VarietySelectedColor = new Color(1f, 0.82f, 0.35f);
+    private static readonly Color VarietyNormalColor = Color.white;
 
     [Inject]
     public void Construct(
         MarketManager marketManager,
         BagManager bagManager,
         AdManager adManager,
-        GameUIRoot uiRoot)
+        GameUIRoot uiRoot,
+        GameEconomyConfig economyConfig)
     {
         _marketManager = marketManager;
         _bagManager = bagManager;
         _adManager = adManager;
         _uiRoot = uiRoot;
+        _economyConfig = economyConfig;
     }
 
     private void Start()
@@ -93,7 +103,10 @@ public class MarketPage : MonoBehaviour
         ApplyStaticUiSprites();
         BindButtons();
         RefreshGold();
+        UpdateRefreshButtonLabel();
+        _highlightedVariety = VarietyType.JinZheng;
         _marketManager?.RefreshMarket(VarietyType.JinZheng);
+        UpdateVarietyHighlight();
         // RefreshMarket 会发事件，但 SubscribeEvents 在 Start 中更晚执行，首屏需直接刷卡片贴图
         RefreshCards();
         _initialized = true;
@@ -163,6 +176,21 @@ public class MarketPage : MonoBehaviour
         if (shopButton == null)
         {
             shopButton = transform.Find("Footer/Shop")?.GetComponent<Button>();
+        }
+
+        if (refreshButton == null)
+        {
+            refreshButton = transform.Find("RefreshRow/RefreshButton")?.GetComponent<Button>();
+        }
+
+        if (refreshButtonImage == null && refreshButton != null)
+        {
+            refreshButtonImage = refreshButton.GetComponent<Image>();
+        }
+
+        if (refreshButtonText == null && refreshButton != null)
+        {
+            refreshButtonText = refreshButton.transform.Find("Text")?.GetComponent<Text>();
         }
     }
 
@@ -249,8 +277,14 @@ public class MarketPage : MonoBehaviour
 
                 var variety = varieties[i];
                 varietyButtons[i].onClick.RemoveAllListeners();
-                varietyButtons[i].onClick.AddListener(() => _marketManager.RefreshMarket(variety));
+                varietyButtons[i].onClick.AddListener(() => OnVarietyClick(variety));
             }
+        }
+
+        if (refreshButton != null)
+        {
+            refreshButton.onClick.RemoveAllListeners();
+            refreshButton.onClick.AddListener(OnRefreshClick);
         }
 
         if (buyButtons != null)
@@ -293,6 +327,106 @@ public class MarketPage : MonoBehaviour
         {
             shopButton.onClick.RemoveAllListeners();
             shopButton.onClick.AddListener(() => _uiRoot.ShowShop());
+        }
+    }
+
+    private void OnVarietyClick(VarietyType variety)
+    {
+        if (_marketManager == null)
+        {
+            return;
+        }
+
+        if (variety == _highlightedVariety)
+        {
+            _marketManager.RefreshMarket(variety);
+        }
+        else
+        {
+            _highlightedVariety = variety;
+            UpdateVarietyHighlight();
+        }
+    }
+
+    private void OnRefreshClick()
+    {
+        if (_marketManager == null || _economyConfig == null)
+        {
+            return;
+        }
+
+        if (PlayerData.Instance.Gold >= _economyConfig.MarketRefreshCost)
+        {
+            if (_marketManager.TryRefreshWithGold())
+            {
+                RefreshGold();
+                UpdateRefreshButtonLabel();
+            }
+
+            return;
+        }
+
+        TryRefreshWithAd();
+    }
+
+    private async void TryRefreshWithAd()
+    {
+        if (_marketManager == null || _adManager == null)
+        {
+            return;
+        }
+
+        var success = await _adManager.ShowRewardedAd("refresh_market");
+        if (!success)
+        {
+            return;
+        }
+
+        _marketManager.RefreshMarket(_marketManager.CurrentVariety);
+        UpdateRefreshButtonLabel();
+    }
+
+    private void UpdateVarietyHighlight()
+    {
+        if (varietyButtons == null)
+        {
+            return;
+        }
+
+        var varieties = new[] { VarietyType.JinZheng, VarietyType.GanYao, VarietyType.MaoShanWang };
+        for (var i = 0; i < varietyButtons.Length && i < varieties.Length; i++)
+        {
+            if (varietyButtons[i] == null)
+            {
+                continue;
+            }
+
+            var image = varietyButtons[i].GetComponent<Image>();
+            if (image == null)
+            {
+                continue;
+            }
+
+            image.color = varieties[i] == _highlightedVariety ? VarietySelectedColor : VarietyNormalColor;
+        }
+    }
+
+    private void UpdateRefreshButtonLabel()
+    {
+        if (refreshButtonText == null || _economyConfig == null)
+        {
+            return;
+        }
+
+        var cost = _economyConfig.MarketRefreshCost;
+        refreshButtonText.text = PlayerData.Instance.Gold >= cost
+            ? $"换一批（{cost}金币）"
+            : "看广告免费刷新";
+
+        if (refreshButton != null && _adManager != null)
+        {
+            var canAfford = PlayerData.Instance.Gold >= cost;
+            refreshButton.interactable = canAfford || _adManager.CanShowAd("refresh_market");
         }
     }
 
@@ -423,6 +557,20 @@ public class MarketPage : MonoBehaviour
                 SharedUiSpriteUtil.ApplyAdIcon(button, spriteConfig);
             }
         }
+
+        if (refreshButtonImage != null)
+        {
+            if (spriteConfig.refreshIcon != null)
+            {
+                refreshButtonImage.sprite = spriteConfig.refreshIcon;
+            }
+            else if (spriteConfig.goldCoinIcon != null)
+            {
+                refreshButtonImage.sprite = spriteConfig.goldCoinIcon;
+            }
+
+            refreshButtonImage.color = Color.white;
+        }
     }
 
     private void RefreshGold()
@@ -440,6 +588,7 @@ public class MarketPage : MonoBehaviour
         }
 
         _lastGold = gold;
+        UpdateRefreshButtonLabel();
     }
 
     private void RefreshCards()

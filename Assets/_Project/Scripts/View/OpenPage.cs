@@ -1,4 +1,5 @@
 using System;
+using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
@@ -119,8 +120,15 @@ public class OpenPage : MonoBehaviour
         }
 
         HideSwipeGuide();
+        ShowOpenedActionsAsync().Forget();
+    }
+
+    private async UniTaskVoid ShowOpenedActionsAsync()
+    {
+        // 评级动画由 DurianOpener 播放完毕后再弹出操作按钮
+        await UniTask.Delay(300);
         ShowButtonPop(sellButton);
-        if (e.Rating == "空壳")
+        if (_lastRating == "空壳")
         {
             ShowButtonPop(reviveButton);
         }
@@ -141,6 +149,7 @@ public class OpenPage : MonoBehaviour
 
         _currentDurian = _durianGenerator.RerollOpenResult(_currentDurian);
         _bagManager.ReplaceDurian(_currentDurian);
+        _lastRating = string.Empty;
 
         durianOpener?.ResetVisualState();
         ApplyDurianVisual(_currentDurian);
@@ -165,6 +174,12 @@ public class OpenPage : MonoBehaviour
     private void OnSwipeStarted()
     {
         HideSwipeGuide();
+
+        if (guideText != null)
+        {
+            StopGuidePulse();
+            guideText.gameObject.SetActive(false);
+        }
     }
 
     private void BindKnifeEvents()
@@ -190,25 +205,19 @@ public class OpenPage : MonoBehaviour
 
     private void ApplyDurianVisual(DurianData durian)
     {
-        if (durianImage == null)
+        if (durianOpener != null)
         {
-            return;
+            durianOpener.ApplyUnopenedSprite(durian);
         }
 
-        if (spriteConfig != null)
+        // durianImage 与 wholeDurianImage 在场景中常为同一节点，必须保持显示
+        if (durianImage != null)
         {
-            durianImage.sprite = spriteConfig.GetUnopenedSprite(durian.variety, durian.appearance);
-            durianImage.color = Color.white;
-            durianImage.preserveAspect = true;
+            durianImage.gameObject.SetActive(true);
+            durianImage.transform.DOKill();
+            durianImage.transform.localScale = Vector3.one * 0.92f;
+            durianImage.transform.DOScale(1f, 0.35f).SetEase(Ease.OutBack);
         }
-        else
-        {
-            durianImage.color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
-        }
-
-        durianImage.transform.DOKill();
-        durianImage.transform.localScale = Vector3.one * 0.92f;
-        durianImage.transform.DOScale(1f, 0.35f).SetEase(Ease.OutBack);
     }
 
     private void ApplyStaticUiSprites()
@@ -268,8 +277,14 @@ public class OpenPage : MonoBehaviour
             return;
         }
 
+        if (string.IsNullOrEmpty(_lastRating))
+        {
+            estimateText.text = "在顶部滑动开果 · 出肉率开果后揭晓";
+            return;
+        }
+
         var price = _sellManager.CalculateSellPrice(_currentDurian);
-        estimateText.text = $"出肉率约 {_currentDurian.yieldRate:F1}% · 估价 {price} 金币";
+        estimateText.text = $"出肉率 {_currentDurian.yieldRate:F1}% · {_lastRating} · 估价 {price} 金币";
     }
 
     private void HideActionButtons()

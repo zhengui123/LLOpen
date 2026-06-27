@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using VContainer;
 
 /// <summary>
-/// 背包页：网格展示已购榴莲。
+/// 背包页：网格展示已购榴莲，空背包引导。
 /// </summary>
 public class BagPage : MonoBehaviour
 {
@@ -13,7 +13,9 @@ public class BagPage : MonoBehaviour
     [SerializeField] private Text capacityText;
     [SerializeField] private Transform cardRoot;
     [SerializeField] private GameObject cardPrefab;
-    [SerializeField] private GameObject emptyHint;
+    [SerializeField] private GameObject emptyStatePanel;
+    [SerializeField] private Image emptyIllustImage;
+    [SerializeField] private Text emptyHintText;
     [SerializeField] private Button goMarketButton;
     [SerializeField] private Button backButton;
 
@@ -30,6 +32,8 @@ public class BagPage : MonoBehaviour
 
     private void Start()
     {
+        EnsureReferences();
+
         if (goMarketButton != null)
         {
             goMarketButton.onClick.RemoveAllListeners();
@@ -41,6 +45,8 @@ public class BagPage : MonoBehaviour
             backButton.onClick.RemoveAllListeners();
             backButton.onClick.AddListener(() => _uiRoot?.ShowMarket());
         }
+
+        ApplyStaticUiSprites();
     }
 
     private void OnEnable()
@@ -56,6 +62,50 @@ public class BagPage : MonoBehaviour
         KillCardTweens();
     }
 
+    private void EnsureReferences()
+    {
+        if (emptyStatePanel == null)
+        {
+            emptyStatePanel = transform.Find("EmptyStatePanel")?.gameObject;
+        }
+
+        if (emptyIllustImage == null)
+        {
+            emptyIllustImage = transform.Find("EmptyStatePanel/EmptyIllust")?.GetComponent<Image>();
+        }
+
+        if (emptyHintText == null)
+        {
+            emptyHintText = transform.Find("EmptyStatePanel/EmptyHintText")?.GetComponent<Text>();
+        }
+
+        if (goMarketButton == null)
+        {
+            goMarketButton = transform.Find("EmptyStatePanel/GoMarket")?.GetComponent<Button>()
+                ?? transform.Find("GoMarket")?.GetComponent<Button>();
+        }
+
+        if (cardRoot == null)
+        {
+            cardRoot = transform.Find("CardRoot");
+        }
+    }
+
+    private void ApplyStaticUiSprites()
+    {
+        if (spriteConfig == null || emptyIllustImage == null)
+        {
+            return;
+        }
+
+        if (spriteConfig.emptyBagIllust != null)
+        {
+            emptyIllustImage.sprite = spriteConfig.emptyBagIllust;
+            emptyIllustImage.color = Color.white;
+            emptyIllustImage.preserveAspect = true;
+        }
+    }
+
     public void Refresh()
     {
         if (_bagManager == null)
@@ -63,23 +113,15 @@ public class BagPage : MonoBehaviour
             return;
         }
 
+        EnsureReferences();
+        UpdateBagDisplay();
+
         if (capacityText != null)
         {
             capacityText.text = $"{_bagManager.Durians.Count}/{_bagManager.MaxCapacity}";
         }
 
-        var isEmpty = _bagManager.Durians.Count == 0;
-        if (emptyHint != null)
-        {
-            emptyHint.SetActive(isEmpty);
-        }
-
-        if (goMarketButton != null)
-        {
-            goMarketButton.gameObject.SetActive(isEmpty);
-        }
-
-        if (cardRoot == null || cardPrefab == null)
+        if (cardRoot == null || cardPrefab == null || _bagManager.Durians.Count == 0)
         {
             return;
         }
@@ -94,6 +136,26 @@ public class BagPage : MonoBehaviour
         for (var i = 0; i < _bagManager.Durians.Count; i++)
         {
             SpawnCard(_bagManager.Durians[i], i);
+        }
+    }
+
+    private void UpdateBagDisplay()
+    {
+        var isEmpty = _bagManager.Durians.Count == 0;
+
+        if (emptyStatePanel != null)
+        {
+            emptyStatePanel.SetActive(isEmpty);
+        }
+
+        if (emptyHintText != null)
+        {
+            emptyHintText.text = "你的背包空空如也，去市场挑选榴莲吧！";
+        }
+
+        if (cardRoot != null)
+        {
+            cardRoot.gameObject.SetActive(!isEmpty);
         }
     }
 

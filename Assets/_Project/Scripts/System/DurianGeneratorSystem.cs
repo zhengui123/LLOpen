@@ -9,15 +9,18 @@ public class DurianGeneratorSystem
     private static int _nextId = 1;
 
     private readonly AppearanceProbabilitySystem _probabilitySystem;
+    private readonly GameEconomyConfig _economyConfig;
     private readonly VarietyConfig[] _varietyConfigs;
     private readonly AppearanceConfig[] _appearanceConfigs;
 
     public DurianGeneratorSystem(
         AppearanceProbabilitySystem probabilitySystem,
+        GameEconomyConfig economyConfig,
         VarietyConfig[] varietyConfigs,
         AppearanceConfig[] appearanceConfigs)
     {
         _probabilitySystem = probabilitySystem;
+        _economyConfig = economyConfig;
         _varietyConfigs = varietyConfigs;
         _appearanceConfigs = appearanceConfigs;
     }
@@ -39,6 +42,7 @@ public class DurianGeneratorSystem
             var yieldRate = GenerateYieldRate(grade);
             var roomCount = Random.Range(varietyConfig.minRooms, varietyConfig.maxRooms + 1);
             var priceMultiplier = appearanceConfig.priceMultiplier;
+            var basePrice = _economyConfig.GetVarietyBasePrice(variety, varietyConfig.basePrice);
 
             durians[i] = new DurianData
             {
@@ -46,8 +50,8 @@ public class DurianGeneratorSystem
                 variety = variety,
                 appearance = appearance,
                 appearancePriceMultiplier = priceMultiplier,
-                basePrice = varietyConfig.basePrice,
-                finalPrice = Mathf.RoundToInt(varietyConfig.basePrice * priceMultiplier),
+                basePrice = basePrice,
+                finalPrice = Mathf.RoundToInt(basePrice * priceMultiplier),
                 yieldRate = yieldRate,
                 roomCount = roomCount,
                 roomResults = GenerateRoomResults(roomCount, yieldRate),

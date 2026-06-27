@@ -35,6 +35,11 @@ MonoBehaviour:
   shellRightHalf: {fileID: 21300000, guid: 5d9272f9979b1d640847f0019f7a5b0c, type: 3}
   fleshPiece: {fileID: 21300000, guid: dbfcb00cd4f5d054ca23233350301353, type: 3}
   emptyPiece: {fileID: 21300000, guid: 4a2fda20c69fa0c4096980fa7bcb3ce1, type: 3}
+  crackStage1: {fileID: 21300000, guid: 3de8b98ba7db0ad40abe8c095139fa9a, type: 3}
+  crackStage2: {fileID: 21300000, guid: cadb5c459442a8c49b234c1a9e5a9cc9, type: 3}
+  crackStage3: {fileID: 21300000, guid: f5df1305d3c1ef749a50e93f0b3f23cd, type: 3}
+  crackStage4: {fileID: 21300000, guid: 339ca6a5d4310cc4098b7ac547651a42, type: 3}
+  crackStage5: {fileID: 21300000, guid: ff6b80a5265de294ab23f36698322297, type: 3}
   poorIcon: {fileID: 21300000, guid: d3749e8f61c06ed43a0641c02fb86b63, type: 3}
   normalIcon: {fileID: 21300000, guid: 72d79c7d3c045b4419f2247036d7b08e, type: 3}
   goodIcon: {fileID: 21300000, guid: 6b64551793ba5f74d87964a50ebf0153, type: 3}
@@ -50,4 +55,8 @@ MonoBehaviour:
   highRating: {fileID: 21300000, guid: 37d9bf8a3cf72574ebecfb4d36b83830, type: 3}
   perfectRating: {fileID: 21300000, guid: 24b8e54722c31e64087b613c95cdf873, type: 3}
   kingRating: {fileID: 21300000, guid: 363ad45dcf5b98d40b6be9276ff2318d, type: 3}
+  refreshIcon: {fileID: 0}
+  emptyBagIllust: {fileID: 0}
+  goldCoinParticle: {fileID: 0}
+  upgradeEffect: {fileID: 0}
   marketFrame: {fileID: 21300000, guid: 46f08216434f8414985cf8ec24ee5884, type: 3}

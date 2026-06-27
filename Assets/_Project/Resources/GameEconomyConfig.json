@@ -1,0 +1,16 @@
+{
+  "initialGold": 400,
+  "marketRefreshCost": 25,
+  "sellYieldMultipliers": {
+    "empty": 0.2,
+    "low": 0.6,
+    "normal": 1.0,
+    "high": 1.35,
+    "perfect": 1.85
+  },
+  "varietyBasePrices": {
+    "jinZheng": 50,
+    "ganYao": 100,
+    "maoShanWang": 180
+  }
+}

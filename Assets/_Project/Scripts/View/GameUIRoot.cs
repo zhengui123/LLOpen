@@ -1,8 +1,9 @@
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// UI 页面导航根节点，控制各页面的显示/隐藏。
+/// UI 页面导航根节点，控制各页面的显示/隐藏与过渡动画。
 /// </summary>
 public class GameUIRoot : MonoBehaviour
 {
@@ -20,6 +21,9 @@ public class GameUIRoot : MonoBehaviour
     public BagPage Bag => bagPage;
     public ShopPage Shop => shopPage;
 
+    private GameObject _currentPage;
+    private bool _firstPageShown;
+
     private void Start()
     {
         ShowMarket();
@@ -27,7 +31,7 @@ public class GameUIRoot : MonoBehaviour
 
     public void ShowMarket()
     {
-        SetActivePage(marketPage != null ? marketPage.gameObject : null);
+        ShowPage(marketPage != null ? marketPage.gameObject : null, PageTransition.Direction.FromLeft);
     }
 
     public void ShowOpen(DurianData durian)
@@ -37,7 +41,7 @@ public class GameUIRoot : MonoBehaviour
             return;
         }
 
-        SetActivePage(openPage.gameObject);
+        ShowPage(openPage.gameObject, PageTransition.Direction.FromRight);
         openPage.Show(durian);
     }
 
@@ -48,29 +52,108 @@ public class GameUIRoot : MonoBehaviour
             return;
         }
 
-        SetActivePage(sellPage.gameObject);
+        ShowPage(sellPage.gameObject, PageTransition.Direction.FromRight);
         sellPage.Show(durian, rating);
     }
 
     public void ShowBag()
     {
-        SetActivePage(bagPage != null ? bagPage.gameObject : null);
+        ShowPage(bagPage != null ? bagPage.gameObject : null, PageTransition.Direction.FromRight);
         bagPage?.Refresh();
     }
 
     public void ShowShop()
     {
-        SetActivePage(shopPage != null ? shopPage.gameObject : null);
+        ShowPage(shopPage != null ? shopPage.gameObject : null, PageTransition.Direction.FromRight);
         shopPage?.Refresh();
     }
 
-    private void SetActivePage(GameObject activePage)
+    private void ShowPage(GameObject targetPage, PageTransition.Direction direction)
     {
-        if (marketPage != null) marketPage.gameObject.SetActive(marketPage.gameObject == activePage);
-        if (openPage != null) openPage.gameObject.SetActive(openPage.gameObject == activePage);
-        if (sellPage != null) sellPage.gameObject.SetActive(sellPage.gameObject == activePage);
-        if (bagPage != null) bagPage.gameObject.SetActive(bagPage.gameObject == activePage);
-        if (shopPage != null) shopPage.gameObject.SetActive(shopPage.gameObject == activePage);
+        if (targetPage == null)
+        {
+            return;
+        }
+
+        if (!_firstPageShown)
+        {
+            SetActivePageImmediate(targetPage);
+            _firstPageShown = true;
+            return;
+        }
+
+        if (_currentPage == targetPage)
+        {
+            return;
+        }
+
+        TransitionToPageAsync(targetPage, direction).Forget();
+    }
+
+    private async UniTaskVoid TransitionToPageAsync(GameObject targetPage, PageTransition.Direction direction)
+    {
+        var fromGroup = PageTransition.GetOrAddCanvasGroup(_currentPage);
+        var toGroup = PageTransition.GetOrAddCanvasGroup(targetPage);
+
+        await PageTransition.TransitionTo(fromGroup, toGroup, direction);
+
+        _currentPage = targetPage;
+        UpdateBackground(targetPage);
+    }
+
+    private void SetActivePageImmediate(GameObject activePage)
+    {
+        if (marketPage != null)
+        {
+            var active = marketPage.gameObject == activePage;
+            marketPage.gameObject.SetActive(active);
+            if (active)
+            {
+                PageTransition.ShowImmediate(PageTransition.GetOrAddCanvasGroup(marketPage.gameObject));
+            }
+        }
+
+        if (openPage != null)
+        {
+            var active = openPage.gameObject == activePage;
+            openPage.gameObject.SetActive(active);
+            if (active)
+            {
+                PageTransition.ShowImmediate(PageTransition.GetOrAddCanvasGroup(openPage.gameObject));
+            }
+        }
+
+        if (sellPage != null)
+        {
+            var active = sellPage.gameObject == activePage;
+            sellPage.gameObject.SetActive(active);
+            if (active)
+            {
+                PageTransition.ShowImmediate(PageTransition.GetOrAddCanvasGroup(sellPage.gameObject));
+            }
+        }
+
+        if (bagPage != null)
+        {
+            var active = bagPage.gameObject == activePage;
+            bagPage.gameObject.SetActive(active);
+            if (active)
+            {
+                PageTransition.ShowImmediate(PageTransition.GetOrAddCanvasGroup(bagPage.gameObject));
+            }
+        }
+
+        if (shopPage != null)
+        {
+            var active = shopPage.gameObject == activePage;
+            shopPage.gameObject.SetActive(active);
+            if (active)
+            {
+                PageTransition.ShowImmediate(PageTransition.GetOrAddCanvasGroup(shopPage.gameObject));
+            }
+        }
+
+        _currentPage = activePage;
         UpdateBackground(activePage);
     }
 

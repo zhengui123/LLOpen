@@ -26,6 +26,10 @@ public class GameLifetimeScope : LifetimeScope
         EnsureConfigsLoaded();
         EnsureUIReferences();
 
+        var economyConfig = GameEconomyConfig.LoadDefault();
+        PlayerData.Instance.Gold = economyConfig.InitialGold;
+
+        builder.RegisterInstance(economyConfig);
         builder.Register<EventBus>(Lifetime.Singleton);
         builder.Register<AppearanceProbabilitySystem>(Lifetime.Singleton);
 
@@ -68,32 +72,32 @@ public class GameLifetimeScope : LifetimeScope
     {
         if (uiRoot == null)
         {
-            uiRoot = FindAnyObjectByType<GameUIRoot>(FindObjectsInactive.Include);
+            uiRoot = FindObjectOfType<GameUIRoot>(true);
         }
 
         if (marketPage == null)
         {
-            marketPage = FindAnyObjectByType<MarketPage>(FindObjectsInactive.Include);
+            marketPage = FindObjectOfType<MarketPage>(true);
         }
 
         if (openPage == null)
         {
-            openPage = FindAnyObjectByType<OpenPage>(FindObjectsInactive.Include);
+            openPage = FindObjectOfType<OpenPage>(true);
         }
 
         if (sellPage == null)
         {
-            sellPage = FindAnyObjectByType<SellPage>(FindObjectsInactive.Include);
+            sellPage = FindObjectOfType<SellPage>(true);
         }
 
         if (bagPage == null)
         {
-            bagPage = FindAnyObjectByType<BagPage>(FindObjectsInactive.Include);
+            bagPage = FindObjectOfType<BagPage>(true);
         }
 
         if (shopPage == null)
         {
-            shopPage = FindAnyObjectByType<ShopPage>(FindObjectsInactive.Include);
+            shopPage = FindObjectOfType<ShopPage>(true);
         }
     }
 

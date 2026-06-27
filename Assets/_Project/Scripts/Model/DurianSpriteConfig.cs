@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -41,10 +42,19 @@ public class DurianSpriteConfig : ScriptableObject
 
     [Header("开果动画")]
     public Sprite knifeSprite;
-    public Sprite shellLeftHalf;
-    public Sprite shellRightHalf;
+    [Obsolete("v1.2 改为开裂叠加方案，不再使用左右半壳")]
+    public Sprite shellLeftHalf;     // SH-01 废弃
+    [Obsolete("v1.2 改为开裂叠加方案，不再使用左右半壳")]
+    public Sprite shellRightHalf;    // SH-02 废弃
     public Sprite fleshPiece;
     public Sprite emptyPiece;
+
+    [Header("开果动画 - 开裂阶段（v1.2新增）")]
+    public Sprite crackStage1;   // CP-01 裂纹初现
+    public Sprite crackStage2;   // CP-02 裂纹扩大
+    public Sprite crackStage3;   // CP-03 半开裂
+    public Sprite crackStage4;   // CP-04 大半开裂
+    public Sprite crackStage5;   // CP-05 完全开裂
 
     [Header("外观等级图标")]
     public Sprite poorIcon;
@@ -67,8 +77,24 @@ public class DurianSpriteConfig : ScriptableObject
     public Sprite perfectRating;
     public Sprite kingRating;
 
+    [Header("v1.2 新增UI")]
+    public Sprite refreshIcon;   // UI-10 换一批按钮
+    public Sprite emptyBagIllust; // UI-11 空背包插图
+    public Sprite goldCoinParticle; // EF-01 金币粒子
+    public Sprite upgradeEffect;  // EF-02 升级光柱
+
     [Header("市场框架")]
     public Sprite marketFrame;
+
+    /// <summary>根据开裂进度(0.0~1.0)获取对应的开裂阶段贴图。</summary>
+    public Sprite GetCrackStage(float progress)
+    {
+        if (progress < 0.2f) return crackStage1;
+        if (progress < 0.4f) return crackStage2;
+        if (progress < 0.6f) return crackStage3;
+        if (progress < 0.8f) return crackStage4;
+        return crackStage5;
+    }
 
     /// <summary>根据品种和外观获取未开榴莲贴图。</summary>
     public Sprite GetUnopenedSprite(VarietyType variety, AppearanceType appearance)

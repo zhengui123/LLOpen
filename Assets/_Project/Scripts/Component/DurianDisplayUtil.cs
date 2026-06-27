@@ -40,11 +40,11 @@ public static class DurianDisplayUtil
     }
 
     /// <summary>
-    /// 背包卡片简要信息：购买价 + 出肉率预估。
+    /// 背包卡片简要信息：购买价 + 未开出肉率占位。
     /// </summary>
     public static string GetBagBriefInfo(DurianData durian)
     {
-        return $"购价 {durian.finalPrice} · 出肉约 {durian.yieldRate:F1}%";
+        return $"购价 {durian.finalPrice} · 出肉 ?";
     }
 
     public static string GetBagCardLabel(DurianData durian)

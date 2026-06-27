@@ -6,16 +6,19 @@ using UnityEngine;
 public class SellManager
 {
     private readonly ShopManager _shopManager;
+    private readonly GameEconomyConfig _economyConfig;
     private float _temporaryAdBonus;
 
-    public SellManager(ShopManager shopManager)
+    public SellManager(ShopManager shopManager, GameEconomyConfig economyConfig)
     {
         _shopManager = shopManager;
+        _economyConfig = economyConfig;
     }
 
     public int CalculateSellPrice(DurianData durian)
     {
-        var basePrice = GetYieldGradePrice(durian.yieldGrade);
+        var purchaseMultiplier = _economyConfig.GetSellMultiplier(durian.yieldGrade);
+        var basePrice = Mathf.RoundToInt(durian.finalPrice * purchaseMultiplier);
         var shopBonus = _shopManager.GetSellBonus();
         var totalBonus = shopBonus + _temporaryAdBonus;
         return Mathf.RoundToInt(basePrice * (1f + totalBonus));
@@ -41,18 +44,5 @@ public class SellManager
     public void ClearTemporaryBonus()
     {
         _temporaryAdBonus = 0f;
-    }
-
-    private static float GetYieldGradePrice(YieldGrade grade)
-    {
-        return grade switch
-        {
-            YieldGrade.Empty => 0f,
-            YieldGrade.Low => 10f,
-            YieldGrade.Normal => 50f,
-            YieldGrade.High => 100f,
-            YieldGrade.Perfect => 250f,
-            _ => 0f
-        };
     }
 }
