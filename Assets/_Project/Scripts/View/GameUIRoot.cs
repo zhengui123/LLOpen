@@ -45,7 +45,7 @@ public class GameUIRoot : MonoBehaviour
         openPage.Show(durian);
     }
 
-    public void ShowSell(DurianData durian, string rating)
+    public void ShowSell(DurianData durian, string rating, int overridePrice = -1)
     {
         if (sellPage == null)
         {
@@ -53,7 +53,7 @@ public class GameUIRoot : MonoBehaviour
         }
 
         ShowPage(sellPage.gameObject, PageTransition.Direction.FromRight);
-        sellPage.Show(durian, rating);
+        sellPage.Show(durian, rating, overridePrice);
     }
 
     public void ShowBag()

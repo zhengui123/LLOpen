@@ -48,3 +48,25 @@ public struct DurianOpenedEvent
     public string Rating;
     public float YieldRate;
 }
+
+// v1.5：连击 / 图鉴 / 中途卖 / 每日目标
+public struct StreakUpdatedEvent
+{
+    public int Combo;
+}
+
+public struct CollectionNewEntryEvent
+{
+    public VarietyType Variety;
+    public YieldGrade Grade;
+}
+
+public struct DurianMidwaySoldEvent
+{
+    public DurianData Durian;
+    public int EstimatePrice;
+}
+
+public struct DailyTargetCompletedEvent
+{
+}

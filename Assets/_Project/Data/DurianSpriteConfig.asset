@@ -12,51 +12,43 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e1adb6809fc687141be27c0a70c8996a, type: 3}
   m_Name: DurianSpriteConfig
   m_EditorClassIdentifier: 
-  jinZhengNormal: {fileID: 21300000, guid: c69b7cbaa0e35c448b02726fed1b020f, type: 3}
-  ganYaoNormal: {fileID: 21300000, guid: a5e8cdd7de5b90f4893b7ebafe6bd29b, type: 3}
-  maoShanWangNormal: {fileID: 21300000, guid: 1e92775472dfa704da670eb755257c85, type: 3}
-  jinZhengPoor: {fileID: 21300000, guid: 80c525e2c206544468dc6c959cc34f7e, type: 3}
-  jinZhengGood: {fileID: 21300000, guid: fdfc69563765b9043880bfe366b2ac4b, type: 3}
-  jinZhengPremium: {fileID: 21300000, guid: 494345e9a487d084d8f6260ff702fc20, type: 3}
-  ganYaoPoor: {fileID: 21300000, guid: effa23b55d8496444ac9efc6cccb1ca9, type: 3}
-  ganYaoGood: {fileID: 21300000, guid: 1add239454779b342912b12fee7a21bd, type: 3}
-  ganYaoPremium: {fileID: 21300000, guid: a854882ef05b7484e90c9fde1cbc7215, type: 3}
-  maoShanWangPoor: {fileID: 21300000, guid: 3891dfb6dd51c2a49ac4bb9d0d4c1758, type: 3}
-  maoShanWangGood: {fileID: 21300000, guid: 8e46036a8a668394490fb53bf2199e91, type: 3}
-  maoShanWangPremium: {fileID: 21300000, guid: e0a4e37fc530d554db032d0a2360694f, type: 3}
-  jinZhengEmpty: {fileID: 21300000, guid: 4684887875577e74da907904dcfe815b, type: 3}
-  jinZhengPerfect: {fileID: 21300000, guid: 4855ae624eeb83c45ad8fa63aa4c60f8, type: 3}
-  ganYaoEmpty: {fileID: 21300000, guid: 520c24486a5369048bde4d4e2511ed3c, type: 3}
-  ganYaoPerfect: {fileID: 21300000, guid: 60c5ca51f8e75694bbd53e9e54a30a76, type: 3}
-  maoShanWangEmpty: {fileID: 21300000, guid: cead4e01145ed2345875f21a0c8b38d4, type: 3}
-  maoShanWangPerfect: {fileID: 21300000, guid: 8f73fe018c4498545bf4eec8280aca04, type: 3}
-  knifeSprite: {fileID: 21300000, guid: 9533118688ee149498a145898c805b09, type: 3}
-  shellLeftHalf: {fileID: 21300000, guid: f6a1bea0de69a324dbaa3c3b406bced0, type: 3}
-  shellRightHalf: {fileID: 21300000, guid: 5d9272f9979b1d640847f0019f7a5b0c, type: 3}
+  jinZhengNormal: {fileID: 21300000, guid: 12754c407b4c34846bd38f1c5f906987, type: 3}
+  ganYaoNormal: {fileID: 21300000, guid: ec3f1f7fbc957f249a0e3c40bec6fd31, type: 3}
+  maoShanWangNormal: {fileID: 21300000, guid: 43caa99a248184d479390ab0c0c964c1, type: 3}
+  rcJzP1: {fileID: 21300000, guid: b6e808157b872064495a7d495d15da46, type: 3}
+  rcJzP2: {fileID: 21300000, guid: c56d0f183bd784a4bac0c37bcaedc23b, type: 3}
+  rcJzP3: {fileID: 21300000, guid: 271fd37b6e0a24342aa7712f354128f0, type: 3}
+  rcJzP4: {fileID: 21300000, guid: 1acac05511e9b7d4da8eed4e2399ee48, type: 3}
+  rcJzP5: {fileID: 21300000, guid: 227744d286f44284ab31ab93a820b04e, type: 3}
+  rf00: {fileID: 21300000, guid: 0821744ba05c4e34c8bd50669cc5e935, type: 3}
+  rf20: {fileID: 21300000, guid: 9674f85588bfa524db709422bc8384c4, type: 3}
+  rf50: {fileID: 21300000, guid: e304d8b3028add4479ea4c33c6eae7c4, type: 3}
+  rf80: {fileID: 21300000, guid: eea7e26a665eed34eb98da9058c08366, type: 3}
+  rf100: {fileID: 21300000, guid: f643e32ecd6b1374d88a1a50783c7871, type: 3}
+  knifeSprite: {fileID: 21300000, guid: 57a6c8e483be2894fb662d2314cc74c0, type: 3}
   fleshPiece: {fileID: 21300000, guid: dbfcb00cd4f5d054ca23233350301353, type: 3}
   emptyPiece: {fileID: 21300000, guid: 4a2fda20c69fa0c4096980fa7bcb3ce1, type: 3}
-  crackStage1: {fileID: 21300000, guid: 3de8b98ba7db0ad40abe8c095139fa9a, type: 3}
-  crackStage2: {fileID: 21300000, guid: cadb5c459442a8c49b234c1a9e5a9cc9, type: 3}
-  crackStage3: {fileID: 21300000, guid: f5df1305d3c1ef749a50e93f0b3f23cd, type: 3}
-  crackStage4: {fileID: 21300000, guid: 339ca6a5d4310cc4098b7ac547651a42, type: 3}
-  crackStage5: {fileID: 21300000, guid: ff6b80a5265de294ab23f36698322297, type: 3}
-  poorIcon: {fileID: 21300000, guid: d3749e8f61c06ed43a0641c02fb86b63, type: 3}
-  normalIcon: {fileID: 21300000, guid: 72d79c7d3c045b4419f2247036d7b08e, type: 3}
-  goodIcon: {fileID: 21300000, guid: 6b64551793ba5f74d87964a50ebf0153, type: 3}
-  premiumIcon: {fileID: 21300000, guid: 2c8af706bf3a2d74291578368c397776, type: 3}
-  goldCoinIcon: {fileID: 21300000, guid: c6360bf130296c94e89f7124ddf6fccc, type: 3}
-  watchAdIcon: {fileID: 21300000, guid: 9348222e51ddd2c46b0a6ed66f2174e7, type: 3}
-  swipeGuideIcon: {fileID: 21300000, guid: 05c3f37764e00bb468ca98bec9eafb41, type: 3}
-  backArrowIcon: {fileID: 21300000, guid: 3be83b9ff1913294591b1e7afd74621c, type: 3}
-  varietyBtnBg: {fileID: 21300000, guid: 889cf98f5af84194a9975c356bd69ffb, type: 3}
-  emptyRating: {fileID: 21300000, guid: 261a48bc4706eb14dafcd14564a2ea9b, type: 3}
-  lowRating: {fileID: 21300000, guid: b9129866abf7bdf46ba5e761920ab970, type: 3}
-  normalRating: {fileID: 21300000, guid: 1734fa37c4b431e47a2eb7d8041e67fd, type: 3}
-  highRating: {fileID: 21300000, guid: 37d9bf8a3cf72574ebecfb4d36b83830, type: 3}
-  perfectRating: {fileID: 21300000, guid: 24b8e54722c31e64087b613c95cdf873, type: 3}
-  kingRating: {fileID: 21300000, guid: 363ad45dcf5b98d40b6be9276ff2318d, type: 3}
-  refreshIcon: {fileID: 0}
-  emptyBagIllust: {fileID: 0}
-  goldCoinParticle: {fileID: 0}
-  upgradeEffect: {fileID: 0}
-  marketFrame: {fileID: 21300000, guid: 46f08216434f8414985cf8ec24ee5884, type: 3}
+  poorIcon: {fileID: 21300000, guid: c84cbce5746801f4bbb2aa76a5e3294c, type: 3}
+  normalIcon: {fileID: 21300000, guid: a795f81fe3018274b83509e1861cd940, type: 3}
+  goodIcon: {fileID: 21300000, guid: 5c1d8eb2a580dcc41a8f64cc939d1857, type: 3}
+  premiumIcon: {fileID: 21300000, guid: 521bf6b03487aab4185421eb9b6d03b6, type: 3}
+  goldCoinIcon: {fileID: 21300000, guid: ad5be1cc63a633a419fc792297a7f4c1, type: 3}
+  watchAdIcon: {fileID: 21300000, guid: 6bb5dcf2605d7164580e8eb2f8ea8b16, type: 3}
+  swipeGuideIcon: {fileID: 21300000, guid: f019ba3c9ae681140913f3c9ab2d0314, type: 3}
+  backArrowIcon: {fileID: 21300000, guid: 48dc1e0e8e8beb345aae74d43fe23c51, type: 3}
+  varietyBtnBg: {fileID: 21300000, guid: 5f3c21715a5ee3d46b1894067dcbd7b5, type: 3}
+  emptyRating: {fileID: 21300000, guid: a3d3b751378776045b27c04cedb99f1a, type: 3}
+  lowRating: {fileID: 21300000, guid: ab97ff6d640b4264fba5277cf0959729, type: 3}
+  normalRating: {fileID: 21300000, guid: b851d311a40713b4a83e76dea5ffd5b5, type: 3}
+  highRating: {fileID: 21300000, guid: 22286cd8856bc3e458769941efac8a07, type: 3}
+  perfectRating: {fileID: 21300000, guid: 55491b3a3b5ee2845b75617a97622df6, type: 3}
+  kingRating: {fileID: 21300000, guid: 13fad630c1a747b4ea58aeeb77e0cde8, type: 3}
+  refreshIcon: {fileID: 21300000, guid: 9e369bd6884fed74393e114379e1608d, type: 3}
+  emptyBagIllust: {fileID: 21300000, guid: 497a63772606e80428414b48301ccf1f, type: 3}
+  goldCoinParticle: {fileID: 21300000, guid: a0b2d578874c16941a691f5169d2c865, type: 3}
+  upgradeEffect: {fileID: 21300000, guid: 60d908d150b432544b1b73485c61d378, type: 3}
+  marketFrame: {fileID: 21300000, guid: e5568e3e56438354e89841d69fe2c0ef, type: 3}
+  collectionBookBg: {fileID: 0}
+  collectionLockedSlot: {fileID: 0}
+  collectionCompleteStamp: {fileID: 0}
+  comboFlameFx: {fileID: 0}

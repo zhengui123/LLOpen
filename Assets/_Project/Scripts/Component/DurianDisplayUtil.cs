@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// 榴莲展示文案与外观色块（市场/背包/OpenPage 共用）。
@@ -28,15 +29,63 @@ public static class DurianDisplayUtil
         };
     }
 
+    /// <summary>无 DurianSpriteConfig 时的调色回退，数值与配置一致。</summary>
     public static Color GetAppearanceColor(AppearanceType appearance)
     {
         return appearance switch
         {
-            AppearanceType.Poor => new Color(0.45f, 0.35f, 0.25f),
-            AppearanceType.Good => new Color(0.9f, 0.55f, 0.1f),
-            AppearanceType.Premium => new Color(1f, 0.84f, 0.2f),
-            _ => new Color(0.3f, 0.65f, 0.35f)
+            AppearanceType.Poor => new Color(0.75f, 0.75f, 0.75f, 1f),
+            AppearanceType.Normal => Color.white,
+            AppearanceType.Good => new Color(1.10f, 1.05f, 0.90f, 1f),
+            AppearanceType.Premium => new Color(1.20f, 1.10f, 0.70f, 1f),
+            _ => Color.white
         };
+    }
+
+    /// <summary>v1.5：品种基底贴图 + 外观调色（市场/背包/开果页共用）。</summary>
+    public static void ApplyUnopenedDurianVisual(
+        Image image,
+        DurianSpriteConfig config,
+        VarietyType variety,
+        AppearanceType appearance)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        if (config != null)
+        {
+            image.sprite = config.GetUnopenedSprite(variety);
+            image.color = config.GetAppearanceColor(appearance);
+            image.preserveAspect = true;
+        }
+        else
+        {
+            image.sprite = null;
+            image.color = GetAppearanceColor(appearance);
+        }
+    }
+
+    /// <summary>外观等级角标（U-01~U-04），不受榴莲调色影响。</summary>
+    public static void ApplyAppearanceIcon(Image icon, DurianSpriteConfig config, AppearanceType appearance)
+    {
+        if (icon == null)
+        {
+            return;
+        }
+
+        if (config != null)
+        {
+            icon.sprite = config.GetAppearanceIcon(appearance);
+            icon.color = Color.white;
+            icon.preserveAspect = true;
+            icon.gameObject.SetActive(true);
+        }
+        else
+        {
+            icon.gameObject.SetActive(false);
+        }
     }
 
     /// <summary>

@@ -26,9 +26,12 @@ public class SellManager
 
     public void SellDurian(DurianData durian)
     {
-        var price = CalculateSellPrice(durian);
-        _temporaryAdBonus = 0f;
+        SellAtPrice(durian, CalculateSellPrice(durian));
+    }
 
+    public void SellAtPrice(DurianData durian, int price)
+    {
+        _temporaryAdBonus = 0f;
         PlayerData.Instance.Gold += price;
         EventBus.Publish(new DurianSoldEvent { Durian = durian, Price = price });
     }

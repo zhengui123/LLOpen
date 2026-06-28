@@ -6,31 +6,37 @@ using UnityEngine.UI;
 using VContainer;
 
 /// <summary>
-/// 开榴莲页：滑动划刀、揭示、卖出、复活广告。
+/// 开榴莲页：v1.5 逐房捅开 + 见好就收 + 全开后卖出。
 /// </summary>
 public class OpenPage : MonoBehaviour
 {
-    [SerializeField] private KnifeTool knifeTool;
     [SerializeField] private DurianOpener durianOpener;
     [SerializeField] private DurianSpriteConfig spriteConfig;
     [SerializeField] private Image durianImage;
     [SerializeField] private Text guideText;
-    [SerializeField] private Image swipeGuideImage;
     [SerializeField] private Text estimateText;
     [SerializeField] private Button sellButton;
     [SerializeField] private Button reviveButton;
     [SerializeField] private Button backButton;
+
+    [Header("v1.5 连击")]
+    [SerializeField] private GameObject comboDisplay;
+    [SerializeField] private Image comboFlameImage;
+    [SerializeField] private Text comboText;
 
     private SellManager _sellManager;
     private AdManager _adManager;
     private BagManager _bagManager;
     private DurianGeneratorSystem _durianGenerator;
     private GameUIRoot _uiRoot;
+
     private DurianData _currentDurian;
     private string _lastRating;
+    private int _overrideSellPrice = -1;
     private IDisposable _openedSub;
+    private IDisposable _midwaySoldSub;
+    private IDisposable _streakSub;
     private Tween _guidePulseTween;
-    private Tween _guideImagePulseTween;
     private bool _staticUiApplied;
 
     [Inject]
@@ -78,28 +84,38 @@ public class OpenPage : MonoBehaviour
         KillTweens();
         _currentDurian = durian;
         _lastRating = string.Empty;
-        _openedSub?.Dispose();
-        _openedSub = EventBus.Subscribe<DurianOpenedEvent>(OnDurianOpened);
+        _overrideSellPrice = -1;
 
-        durianOpener?.ResetVisualState();
+        UnsubscribeEvents();
+        _openedSub = EventBus.Subscribe<DurianOpenedEvent>(OnDurianOpened);
+        _midwaySoldSub = EventBus.Subscribe<DurianMidwaySoldEvent>(OnMidwaySold);
+        _streakSub = EventBus.Subscribe<StreakUpdatedEvent>(OnStreakUpdated);
+
         HideActionButtons();
-        ApplyDurianVisual(durian);
-        BindKnifeEvents();
+        HideComboDisplay();
+        DisableLegacySwipeBlockers();
+
+        if (durianOpener != null)
+        {
+            durianOpener.PrepareOpen(durian);
+        }
+
+        if (durianImage != null)
+        {
+            durianImage.gameObject.SetActive(true);
+            durianImage.transform.DOKill();
+            durianImage.transform.localScale = Vector3.one * 0.92f;
+            durianImage.transform.DOScale(1f, 0.35f).SetEase(Ease.OutBack);
+        }
 
         if (guideText != null)
         {
             guideText.gameObject.SetActive(true);
-            guideText.text = "在榴莲顶部滑动开果";
+            guideText.text = "点击或上下滑动壳盖，逐房开果";
             StartGuidePulse();
         }
 
-        ShowSwipeGuide();
         RefreshEstimateText();
-
-        if (knifeTool != null)
-        {
-            knifeTool.Setup(durian);
-        }
     }
 
     private void OnDurianOpened(DurianOpenedEvent e)
@@ -119,13 +135,49 @@ public class OpenPage : MonoBehaviour
             guideText.gameObject.SetActive(false);
         }
 
-        HideSwipeGuide();
         ShowOpenedActionsAsync().Forget();
+    }
+
+    private void OnMidwaySold(DurianMidwaySoldEvent e)
+    {
+        if (e.Durian.id != _currentDurian.id)
+        {
+            return;
+        }
+
+        _overrideSellPrice = e.EstimatePrice;
+        _lastRating = GradeToRatingText(EstimateGradeFromPrice(e.EstimatePrice));
+        _uiRoot?.ShowSell(_currentDurian, _lastRating, e.EstimatePrice);
+    }
+
+    private void OnStreakUpdated(StreakUpdatedEvent e)
+    {
+        if (comboDisplay == null)
+        {
+            return;
+        }
+
+        if (e.Combo < 2)
+        {
+            comboDisplay.SetActive(false);
+            return;
+        }
+
+        comboDisplay.SetActive(true);
+        if (comboText != null)
+        {
+            comboText.text = e.Combo.ToString();
+        }
+
+        if (comboFlameImage != null && spriteConfig != null && spriteConfig.comboFlameFx != null)
+        {
+            comboFlameImage.sprite = spriteConfig.comboFlameFx;
+            comboFlameImage.color = Color.white;
+        }
     }
 
     private async UniTaskVoid ShowOpenedActionsAsync()
     {
-        // 评级动画由 DurianOpener 播放完毕后再弹出操作按钮
         await UniTask.Delay(300);
         ShowButtonPop(sellButton);
         if (_lastRating == "空壳")
@@ -136,7 +188,7 @@ public class OpenPage : MonoBehaviour
 
     private void OnSellClicked()
     {
-        _uiRoot?.ShowSell(_currentDurian, _lastRating);
+        _uiRoot?.ShowSell(_currentDurian, _lastRating, _overrideSellPrice);
     }
 
     private async void OnReviveClicked()
@@ -149,125 +201,7 @@ public class OpenPage : MonoBehaviour
 
         _currentDurian = _durianGenerator.RerollOpenResult(_currentDurian);
         _bagManager.ReplaceDurian(_currentDurian);
-        _lastRating = string.Empty;
-
-        durianOpener?.ResetVisualState();
-        ApplyDurianVisual(_currentDurian);
-        RefreshEstimateText();
-        HideActionButtons();
-
-        if (guideText != null)
-        {
-            guideText.gameObject.SetActive(true);
-            guideText.text = "在榴莲顶部滑动开果";
-            StartGuidePulse();
-        }
-
-        ShowSwipeGuide();
-
-        if (knifeTool != null)
-        {
-            knifeTool.Setup(_currentDurian);
-        }
-    }
-
-    private void OnSwipeStarted()
-    {
-        HideSwipeGuide();
-
-        if (guideText != null)
-        {
-            StopGuidePulse();
-            guideText.gameObject.SetActive(false);
-        }
-    }
-
-    private void BindKnifeEvents()
-    {
-        if (knifeTool == null)
-        {
-            return;
-        }
-
-        knifeTool.SwipeStarted -= OnSwipeStarted;
-        knifeTool.SwipeStarted += OnSwipeStarted;
-    }
-
-    private void UnbindKnifeEvents()
-    {
-        if (knifeTool == null)
-        {
-            return;
-        }
-
-        knifeTool.SwipeStarted -= OnSwipeStarted;
-    }
-
-    private void ApplyDurianVisual(DurianData durian)
-    {
-        if (durianOpener != null)
-        {
-            durianOpener.ApplyUnopenedSprite(durian);
-        }
-
-        // durianImage 与 wholeDurianImage 在场景中常为同一节点，必须保持显示
-        if (durianImage != null)
-        {
-            durianImage.gameObject.SetActive(true);
-            durianImage.transform.DOKill();
-            durianImage.transform.localScale = Vector3.one * 0.92f;
-            durianImage.transform.DOScale(1f, 0.35f).SetEase(Ease.OutBack);
-        }
-    }
-
-    private void ApplyStaticUiSprites()
-    {
-        if (_staticUiApplied || spriteConfig == null)
-        {
-            return;
-        }
-
-        if (swipeGuideImage != null && spriteConfig.swipeGuideIcon != null)
-        {
-            swipeGuideImage.sprite = spriteConfig.swipeGuideIcon;
-            swipeGuideImage.color = Color.white;
-            swipeGuideImage.preserveAspect = true;
-        }
-
-        if (backButton != null)
-        {
-            SharedUiSpriteUtil.ApplyBackIcon(backButton, spriteConfig);
-        }
-
-        if (reviveButton != null)
-        {
-            SharedUiSpriteUtil.ApplyAdIcon(reviveButton, spriteConfig);
-        }
-
-        _staticUiApplied = true;
-    }
-
-    private void ShowSwipeGuide()
-    {
-        if (swipeGuideImage == null)
-        {
-            return;
-        }
-
-        swipeGuideImage.gameObject.SetActive(true);
-        swipeGuideImage.transform.localScale = Vector3.one;
-    }
-
-    private void HideSwipeGuide()
-    {
-        if (swipeGuideImage == null)
-        {
-            return;
-        }
-
-        swipeGuideImage.transform.DOKill();
-        swipeGuideImage.gameObject.SetActive(false);
-        swipeGuideImage.transform.localScale = Vector3.one;
+        Show(_currentDurian);
     }
 
     private void RefreshEstimateText()
@@ -279,11 +213,13 @@ public class OpenPage : MonoBehaviour
 
         if (string.IsNullOrEmpty(_lastRating))
         {
-            estimateText.text = "在顶部滑动开果 · 出肉率开果后揭晓";
+            estimateText.text = "逐房捅开壳盖 · 首房后可见好就收";
             return;
         }
 
-        var price = _sellManager.CalculateSellPrice(_currentDurian);
+        var price = _overrideSellPrice >= 0
+            ? _overrideSellPrice
+            : _sellManager.CalculateSellPrice(_currentDurian);
         estimateText.text = $"出肉率 {_currentDurian.yieldRate:F1}% · {_lastRating} · 估价 {price} 金币";
     }
 
@@ -301,6 +237,56 @@ public class OpenPage : MonoBehaviour
         {
             reviveButton.gameObject.SetActive(false);
         }
+    }
+
+    private void HideComboDisplay()
+    {
+        if (comboDisplay != null)
+        {
+            comboDisplay.SetActive(false);
+        }
+    }
+
+    /// <summary>v1.5 逐房开果：关闭 v1.2 划刀区域对点击的拦截。</summary>
+    private void DisableLegacySwipeBlockers()
+    {
+        var swipeArea = transform.Find("SwipeArea")?.GetComponent<Image>();
+        if (swipeArea != null)
+        {
+            swipeArea.raycastTarget = false;
+        }
+
+        var knifeTool = transform.Find("KnifeTool");
+        if (knifeTool != null)
+        {
+            knifeTool.gameObject.SetActive(false);
+        }
+
+        var crackOverlay = transform.Find("CrackOverlay")?.GetComponent<Image>();
+        if (crackOverlay != null)
+        {
+            crackOverlay.raycastTarget = false;
+        }
+    }
+
+    private void ApplyStaticUiSprites()
+    {
+        if (_staticUiApplied || spriteConfig == null)
+        {
+            return;
+        }
+
+        if (backButton != null)
+        {
+            SharedUiSpriteUtil.ApplyBackIcon(backButton, spriteConfig);
+        }
+
+        if (reviveButton != null)
+        {
+            SharedUiSpriteUtil.ApplyAdIcon(reviveButton, spriteConfig);
+        }
+
+        _staticUiApplied = true;
     }
 
     private static void ShowButtonPop(Button button)
@@ -330,37 +316,17 @@ public class OpenPage : MonoBehaviour
             .DOScale(1.06f, 0.85f)
             .SetEase(Ease.InOutSine)
             .SetLoops(-1, LoopType.Yoyo);
-
-        if (swipeGuideImage != null && swipeGuideImage.gameObject.activeSelf)
-        {
-            swipeGuideImage.transform.localScale = Vector3.one;
-            _guideImagePulseTween = swipeGuideImage.transform
-                .DOScale(1.06f, 0.85f)
-                .SetEase(Ease.InOutSine)
-                .SetLoops(-1, LoopType.Yoyo);
-        }
     }
 
     private void StopGuidePulse()
     {
         _guidePulseTween?.Kill();
         _guidePulseTween = null;
-        _guideImagePulseTween?.Kill();
-        _guideImagePulseTween = null;
 
         if (guideText != null)
         {
             guideText.transform.DOKill();
             guideText.transform.localScale = Vector3.one;
-        }
-
-        if (swipeGuideImage != null)
-        {
-            swipeGuideImage.transform.DOKill();
-            if (swipeGuideImage.gameObject.activeSelf)
-            {
-                swipeGuideImage.transform.localScale = Vector3.one;
-            }
         }
     }
 
@@ -381,10 +347,57 @@ public class OpenPage : MonoBehaviour
         }
     }
 
-    private void OnDisable()
+    private void UnsubscribeEvents()
     {
         _openedSub?.Dispose();
-        UnbindKnifeEvents();
+        _midwaySoldSub?.Dispose();
+        _streakSub?.Dispose();
+        _openedSub = null;
+        _midwaySoldSub = null;
+        _streakSub = null;
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribeEvents();
         KillTweens();
+    }
+
+    private static string GradeToRatingText(YieldGrade grade)
+    {
+        return grade switch
+        {
+            YieldGrade.Empty => "空壳",
+            YieldGrade.Low => "小亏",
+            YieldGrade.Normal => "回本",
+            YieldGrade.High => "小赚",
+            YieldGrade.Perfect => "大赚",
+            _ => "回本"
+        };
+    }
+
+    private static YieldGrade EstimateGradeFromPrice(int price)
+    {
+        if (price <= 0)
+        {
+            return YieldGrade.Empty;
+        }
+
+        if (price < 80)
+        {
+            return YieldGrade.Low;
+        }
+
+        if (price < 150)
+        {
+            return YieldGrade.Normal;
+        }
+
+        if (price < 220)
+        {
+            return YieldGrade.High;
+        }
+
+        return YieldGrade.Perfect;
     }
 }

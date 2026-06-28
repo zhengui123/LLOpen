@@ -20,6 +20,7 @@ public static class MvpSceneSetupEditor
     private const string MarketBgSpritePath = "Assets/Art/MVP/Scenes/S-01_市场背景.png";
     private const string OpenBgSpritePath = "Assets/Art/MVP/Scenes/S-02_开果台背景.png";
     private const string DurianSpriteConfigPath = "Assets/_Project/Data/DurianSpriteConfig.asset";
+    private const string JinzhengRoomConfigPath = "Assets/_Project/Data/JinzhengRoomConfig.asset";
 
     /// <summary>场景连线类菜单必须在编辑模式运行，Play 中无法 MarkSceneDirty。</summary>
     private static bool EnsureEditMode(string menuName)
@@ -149,41 +150,71 @@ public static class MvpSceneSetupEditor
         }
 
         var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+        if (AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/RoomSlot.prefab") == null)
+        {
+            CreateRoomSlotPrefab();
+        }
+
+        var roomConfig = AssetDatabase.LoadAssetAtPath<DurianRoomConfig>(JinzhengRoomConfigPath);
+        var roomSlotPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/RoomSlot.prefab");
 
         var openPage = Object.FindObjectOfType<OpenPage>(true);
         if (openPage != null)
         {
-            var swipeGuide = openPage.transform.Find("SwipeGuide")?.GetComponent<Image>();
-            if (swipeGuide == null)
-            {
-                swipeGuide = CreateImage(openPage.transform, "SwipeGuide", Color.white,
-                    new Vector2(0.35f, 0.52f), new Vector2(0.65f, 0.58f));
-                swipeGuide.preserveAspect = true;
-                swipeGuide.gameObject.SetActive(false);
-            }
+            EnsureOpenPageV15Ui(openPage, spriteConfig, roomConfig, roomSlotPrefab);
 
-            if (spriteConfig != null)
-            {
-                swipeGuide.sprite = spriteConfig.swipeGuideIcon;
-                swipeGuide.color = Color.white;
-            }
-
-            var opSo = new SerializedObject(openPage);
-            opSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
-            opSo.FindProperty("swipeGuideImage").objectReferenceValue = swipeGuide;
-            opSo.ApplyModifiedPropertiesWithoutUndo();
-
-            EnsureOpenShellHalves(openPage.transform, spriteConfig);
             var opener = openPage.GetComponentInChildren<DurianOpener>(true);
             if (opener != null)
             {
                 var openerSo = new SerializedObject(opener);
-                openerSo.FindProperty("shellLeftImage").objectReferenceValue =
-                    openPage.transform.Find("ShellLeft")?.GetComponent<Image>();
-                openerSo.FindProperty("shellRightImage").objectReferenceValue =
-                    openPage.transform.Find("ShellRight")?.GetComponent<Image>();
+                openerSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
+                openerSo.FindProperty("roomConfig").objectReferenceValue = roomConfig;
+                openerSo.FindProperty("wholeDurianImage").objectReferenceValue =
+                    openPage.transform.Find("DurianImage")?.GetComponent<Image>();
+                openerSo.FindProperty("roomSlotsParent").objectReferenceValue =
+                    openPage.transform.Find("RoomSlotsParent");
+                openerSo.FindProperty("roomSlotPrefab").objectReferenceValue = roomSlotPrefab;
+                openerSo.FindProperty("sellMidwayGroup").objectReferenceValue =
+                    openPage.transform.Find("SellMidwayGroup")?.gameObject;
+                openerSo.FindProperty("sellMidwayCanvas").objectReferenceValue =
+                    openPage.transform.Find("SellMidwayGroup")?.GetComponent<CanvasGroup>();
+                openerSo.FindProperty("sellMidwayPriceText").objectReferenceValue =
+                    openPage.transform.Find("SellMidwayGroup/PriceText")?.GetComponent<Text>();
+                openerSo.FindProperty("sellMidwayButton").objectReferenceValue =
+                    openPage.transform.Find("SellMidwayGroup/SellMidwayButton")?.GetComponent<Button>();
+                openerSo.FindProperty("continueButton").objectReferenceValue =
+                    openPage.transform.Find("SellMidwayGroup/ContinueButton")?.GetComponent<Button>();
+                openerSo.FindProperty("ratingBadgeImage").objectReferenceValue =
+                    openPage.transform.Find("RatingIcon")?.GetComponent<Image>();
+                openerSo.FindProperty("ratingText").objectReferenceValue =
+                    openPage.transform.Find("Rating")?.GetComponent<Text>();
+                openerSo.FindProperty("ratingCanvasGroup").objectReferenceValue =
+                    openPage.transform.Find("RatingIcon")?.GetComponent<CanvasGroup>();
                 openerSo.ApplyModifiedPropertiesWithoutUndo();
             }
+
+            var opSo = new SerializedObject(openPage);
+            opSo.FindProperty("durianOpener").objectReferenceValue = opener;
+            opSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
+            opSo.FindProperty("durianImage").objectReferenceValue =
+                openPage.transform.Find("DurianImage")?.GetComponent<Image>();
+            opSo.FindProperty("guideText").objectReferenceValue =
+                openPage.transform.Find("Guide")?.GetComponent<Text>();
+            opSo.FindProperty("estimateText").objectReferenceValue =
+                openPage.transform.Find("Estimate")?.GetComponent<Text>();
+            opSo.FindProperty("sellButton").objectReferenceValue =
+                openPage.transform.Find("Sell")?.GetComponent<Button>();
+            opSo.FindProperty("reviveButton").objectReferenceValue =
+                openPage.transform.Find("Revive")?.GetComponent<Button>();
+            opSo.FindProperty("backButton").objectReferenceValue =
+                openPage.transform.Find("Back")?.GetComponent<Button>();
+            opSo.FindProperty("comboDisplay").objectReferenceValue =
+                openPage.transform.Find("ComboDisplay")?.gameObject;
+            opSo.FindProperty("comboFlameImage").objectReferenceValue =
+                openPage.transform.Find("ComboDisplay/Flame")?.GetComponent<Image>();
+            opSo.FindProperty("comboText").objectReferenceValue =
+                openPage.transform.Find("ComboDisplay/Text")?.GetComponent<Text>();
+            opSo.ApplyModifiedPropertiesWithoutUndo();
         }
 
         var bagPage = Object.FindObjectOfType<BagPage>(true);
@@ -236,6 +267,15 @@ public static class MvpSceneSetupEditor
         }
 
         ApplyBagCardPrefabSprites(spriteConfig);
+
+        var scope = Object.FindObjectOfType<GameLifetimeScope>(true);
+        if (scope != null)
+        {
+            var scopeSo = new SerializedObject(scope);
+            scopeSo.FindProperty("durianSpriteConfig").objectReferenceValue = spriteConfig;
+            scopeSo.FindProperty("jinzhengRoomConfig").objectReferenceValue = roomConfig;
+            scopeSo.ApplyModifiedPropertiesWithoutUndo();
+        }
 
         if (openPage != null)
         {
@@ -389,6 +429,106 @@ public static class MvpSceneSetupEditor
         badge.color = new Color(1f, 0.85f, 0.35f);
     }
 
+    [MenuItem("Tools/llopen/Create RoomSlot Prefab")]
+    public static void CreateRoomSlotPrefab()
+    {
+        EnsureFolder(PrefabDir);
+        var path = $"{PrefabDir}/RoomSlot.prefab";
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(path) != null)
+        {
+            Debug.Log("[MvpSceneSetup] RoomSlot.prefab 已存在。");
+            return;
+        }
+
+        var root = new GameObject("RoomSlot", typeof(RectTransform));
+        var rect = root.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(128f, 128f);
+
+        var fleshImage = CreateImage(root.transform, "FleshImage", Color.white, Vector2.zero, Vector2.one);
+        fleshImage.raycastTarget = false;
+        fleshImage.gameObject.SetActive(false);
+
+        var coverImage = CreateImage(root.transform, "CoverImage", Color.white, Vector2.zero, Vector2.one);
+        coverImage.raycastTarget = true;
+
+        var slot = root.AddComponent<RoomSlot>();
+        slot.ConfigureImages(coverImage, fleshImage);
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        Object.DestroyImmediate(root);
+        AssetDatabase.SaveAssets();
+
+        EnsureFolder("Assets/_Project/Resources/Prefabs");
+        var resourcesPath = "Assets/_Project/Resources/Prefabs/RoomSlot.prefab";
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(resourcesPath) == null)
+        {
+            AssetDatabase.CopyAsset(path, resourcesPath);
+            AssetDatabase.SaveAssets();
+        }
+
+        Debug.Log("[MvpSceneSetup] 已创建 RoomSlot.prefab（含 Resources 副本）");
+    }
+
+    private static void EnsureOpenPageV15Ui(
+        OpenPage openPage,
+        DurianSpriteConfig spriteConfig,
+        DurianRoomConfig roomConfig,
+        GameObject roomSlotPrefab)
+    {
+        var page = openPage.transform;
+
+        if (page.Find("RoomSlotsParent") == null)
+        {
+            var slotsGo = new GameObject("RoomSlotsParent", typeof(RectTransform));
+            slotsGo.transform.SetParent(page, false);
+            var slotsRect = slotsGo.GetComponent<RectTransform>();
+            slotsRect.anchorMin = new Vector2(0.15f, 0.25f);
+            slotsRect.anchorMax = new Vector2(0.85f, 0.75f);
+            slotsRect.offsetMin = Vector2.zero;
+            slotsRect.offsetMax = Vector2.zero;
+        }
+
+        if (page.Find("SellMidwayGroup") == null)
+        {
+            var group = CreatePanel(page, "SellMidwayGroup", false,
+                new Vector2(0.05f, 0.02f), new Vector2(0.95f, 0.12f), Vector2.zero, Vector2.zero);
+            var groupImage = group.GetComponent<Image>();
+            groupImage.color = new Color(0f, 0f, 0f, 0.55f);
+            var canvasGroup = group.gameObject.AddComponent<CanvasGroup>();
+            canvasGroup.alpha = 0f;
+
+            CreateText(group.transform, "PriceText", "估价 -- 金币", 22, TextAnchor.MiddleCenter,
+                new Vector2(0.05f, 0.55f), new Vector2(0.95f, 0.95f));
+            CreateButton(group.transform, "SellMidwayButton", "见好就收",
+                new Vector2(0.05f, 0.05f), new Vector2(0.45f, 0.5f), new Color(0.85f, 0.45f, 0.1f));
+            CreateButton(group.transform, "ContinueButton", "继续开",
+                new Vector2(0.55f, 0.05f), new Vector2(0.95f, 0.5f), new Color(0.35f, 0.55f, 0.75f));
+            group.gameObject.SetActive(false);
+        }
+
+        if (page.Find("ComboDisplay") == null)
+        {
+            var combo = CreatePanel(page, "ComboDisplay", false,
+                new Vector2(0.78f, 0.72f), new Vector2(0.95f, 0.88f), Vector2.zero, Vector2.zero);
+            SetImageColor(combo, new Color(0f, 0f, 0f, 0.35f));
+            var flame = CreateImage(combo.transform, "Flame", Color.white,
+                new Vector2(0.05f, 0.1f), new Vector2(0.45f, 0.9f));
+            flame.preserveAspect = true;
+            if (spriteConfig != null && spriteConfig.comboFlameFx != null)
+            {
+                flame.sprite = spriteConfig.comboFlameFx;
+            }
+
+            CreateText(combo.transform, "Text", "2", 28, TextAnchor.MiddleCenter,
+                new Vector2(0.45f, 0f), new Vector2(0.95f, 1f));
+            combo.gameObject.SetActive(false);
+        }
+
+        if (roomSlotPrefab == null)
+        {
+            CreateRoomSlotPrefab();
+        }
+    }
+
     private static void EnsureOpenShellHalves(Transform openPage, DurianSpriteConfig spriteConfig)
     {
         var durianTransform = openPage.Find("DurianImage");
@@ -403,10 +543,6 @@ public static class MvpSceneSetupEditor
             shellLeft.raycastTarget = false;
             shellLeft.enabled = false;
             shellLeft.rectTransform.pivot = new Vector2(1f, 0.5f);
-            if (spriteConfig != null)
-            {
-                shellLeft.sprite = spriteConfig.shellLeftHalf;
-            }
         }
 
         if (openPage.Find("ShellRight") == null)
@@ -416,10 +552,6 @@ public static class MvpSceneSetupEditor
             shellRight.raycastTarget = false;
             shellRight.enabled = false;
             shellRight.rectTransform.pivot = new Vector2(0f, 0.5f);
-            if (spriteConfig != null)
-            {
-                shellRight.sprite = spriteConfig.shellRightHalf;
-            }
         }
 
         var roomsRoot = openPage.Find("RoomsRoot");
@@ -691,7 +823,7 @@ public static class MvpSceneSetupEditor
                 new Vector2(0.02f + i * 0.32f, 0), new Vector2(0.3f + i * 0.32f, 1), Vector2.zero, Vector2.zero);
             SetImageColor(card, new Color(0.15f, 0.15f, 0.18f));
 
-            images[i] = CreateImage(card.transform, "DurianImage", new Color(0.3f, 0.65f, 0.35f),
+            images[i] = CreateImage(card.transform, "DurianImage", Color.white,
                 new Vector2(0.1f, 0.35f), new Vector2(0.9f, 0.95f));
             images[i].preserveAspect = true;
             appearanceIcons[i] = CreateImage(card.transform, "AppearanceIcon", Color.white,
@@ -797,12 +929,6 @@ public static class MvpSceneSetupEditor
         shellRightImage.enabled = false;
         shellRightImage.rectTransform.pivot = new Vector2(0f, 0.5f);
 
-        if (spriteConfig != null)
-        {
-            shellLeftImage.sprite = spriteConfig.shellLeftHalf;
-            shellRightImage.sprite = spriteConfig.shellRightHalf;
-        }
-
         var guideText = CreateText(page.transform, "Guide", "在榴莲顶部滑动开果", 26, TextAnchor.MiddleCenter,
             new Vector2(0.1f, 0.18f), new Vector2(0.9f, 0.24f));
         var swipeGuideImage = CreateImage(page.transform, "SwipeGuide", Color.white,
@@ -885,32 +1011,44 @@ public static class MvpSceneSetupEditor
         knifeSo.ApplyModifiedPropertiesWithoutUndo();
 
         var openerSo = new SerializedObject(opener);
+        var roomConfig = AssetDatabase.LoadAssetAtPath<DurianRoomConfig>(JinzhengRoomConfigPath);
+        var roomSlotPrefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/RoomSlot.prefab");
         openerSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
+        openerSo.FindProperty("roomConfig").objectReferenceValue = roomConfig;
         openerSo.FindProperty("wholeDurianImage").objectReferenceValue = durianImage;
-        openerSo.FindProperty("crackOverlayImage").objectReferenceValue = crackOverlayImage;
-        openerSo.FindProperty("openedDurianImage").objectReferenceValue = openedDurianImage;
-        openerSo.FindProperty("shellLeftImage").objectReferenceValue = shellLeftImage;
-        openerSo.FindProperty("shellRightImage").objectReferenceValue = shellRightImage;
         openerSo.FindProperty("ratingBadgeImage").objectReferenceValue = ratingIcon;
         openerSo.FindProperty("ratingText").objectReferenceValue = ratingText;
         openerSo.FindProperty("ratingCanvasGroup").objectReferenceValue = ratingCanvasGroup;
-        openerSo.FindProperty("fleshGridParent").objectReferenceValue = roomsRoot.transform;
-        openerSo.FindProperty("fleshRoomPrefab").objectReferenceValue = roomMeatPrefab;
-        openerSo.FindProperty("floatTextPrefab").objectReferenceValue = floatTextPrefab;
         openerSo.ApplyModifiedPropertiesWithoutUndo();
 
+        EnsureOpenPageV15Ui(op, spriteConfig, roomConfig, roomSlotPrefab);
+
         var opSo = new SerializedObject(op);
-        opSo.FindProperty("knifeTool").objectReferenceValue = knife;
         opSo.FindProperty("durianOpener").objectReferenceValue = opener;
         opSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
         opSo.FindProperty("durianImage").objectReferenceValue = durianImage;
         opSo.FindProperty("guideText").objectReferenceValue = guideText;
-        opSo.FindProperty("swipeGuideImage").objectReferenceValue = swipeGuideImage;
         opSo.FindProperty("estimateText").objectReferenceValue = estimateText;
         opSo.FindProperty("sellButton").objectReferenceValue = sellButton;
         opSo.FindProperty("reviveButton").objectReferenceValue = reviveButton;
         opSo.FindProperty("backButton").objectReferenceValue = backButton;
         opSo.ApplyModifiedPropertiesWithoutUndo();
+
+        openerSo = new SerializedObject(opener);
+        openerSo.FindProperty("roomSlotsParent").objectReferenceValue =
+            page.transform.Find("RoomSlotsParent");
+        openerSo.FindProperty("roomSlotPrefab").objectReferenceValue = roomSlotPrefab;
+        openerSo.FindProperty("sellMidwayGroup").objectReferenceValue =
+            page.transform.Find("SellMidwayGroup")?.gameObject;
+        openerSo.FindProperty("sellMidwayCanvas").objectReferenceValue =
+            page.transform.Find("SellMidwayGroup")?.GetComponent<CanvasGroup>();
+        openerSo.FindProperty("sellMidwayPriceText").objectReferenceValue =
+            page.transform.Find("SellMidwayGroup/PriceText")?.GetComponent<Text>();
+        openerSo.FindProperty("sellMidwayButton").objectReferenceValue =
+            page.transform.Find("SellMidwayGroup/SellMidwayButton")?.GetComponent<Button>();
+        openerSo.FindProperty("continueButton").objectReferenceValue =
+            page.transform.Find("SellMidwayGroup/ContinueButton")?.GetComponent<Button>();
+        openerSo.ApplyModifiedPropertiesWithoutUndo();
 
         return page;
     }

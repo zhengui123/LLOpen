@@ -8,6 +8,7 @@ public class GameLifetimeScope : LifetimeScope
     [SerializeField] private AppearanceConfig[] appearanceConfigs;
     [SerializeField] private ShopConfig shopConfig;
     [SerializeField] private DurianSpriteConfig durianSpriteConfig;
+    [SerializeField] private DurianRoomConfig jinzhengRoomConfig;
     [SerializeField] private GameUIRoot uiRoot;
     [SerializeField] private MarketPage marketPage;
     [SerializeField] private OpenPage openPage;
@@ -30,6 +31,7 @@ public class GameLifetimeScope : LifetimeScope
         PlayerData.Instance.Gold = economyConfig.InitialGold;
 
         builder.RegisterInstance(economyConfig);
+        builder.RegisterInstance(PlayerProgression.Instance);
         builder.Register<EventBus>(Lifetime.Singleton);
         builder.Register<AppearanceProbabilitySystem>(Lifetime.Singleton);
 
@@ -42,6 +44,12 @@ public class GameLifetimeScope : LifetimeScope
             builder.RegisterInstance(durianSpriteConfig);
         }
 
+        if (jinzhengRoomConfig != null)
+        {
+            builder.RegisterInstance(jinzhengRoomConfig);
+        }
+
+        builder.Register<StreakCounter>(Lifetime.Singleton);
         builder.Register<DurianGeneratorSystem>(Lifetime.Singleton);
         builder.Register<MarketManager>(Lifetime.Singleton);
         builder.Register<BagManager>(Lifetime.Singleton);
@@ -55,6 +63,15 @@ public class GameLifetimeScope : LifetimeScope
         RegisterPage(builder, sellPage);
         RegisterPage(builder, bagPage);
         RegisterPage(builder, shopPage);
+
+        if (openPage != null)
+        {
+            var opener = openPage.GetComponentInChildren<DurianOpener>(true);
+            if (opener != null)
+            {
+                builder.RegisterComponent(opener);
+            }
+        }
 
         // 强制创建 EventBus 单例，否则静态 Publish/Subscribe 时 _instance 为空
         builder.RegisterBuildCallback(resolver => resolver.Resolve<EventBus>());
@@ -121,6 +138,11 @@ public class GameLifetimeScope : LifetimeScope
         if (shopConfig == null)
         {
             shopConfig = ScriptableObject.CreateInstance<ShopConfig>();
+        }
+
+        if (jinzhengRoomConfig == null)
+        {
+            jinzhengRoomConfig = Resources.Load<DurianRoomConfig>("JinzhengRoomConfig");
         }
     }
 }

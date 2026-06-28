@@ -2,52 +2,53 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
+using VContainer;
 
 /// <summary>
-/// 榴莲揭示：中央开裂叠加 + 左右壳划开，果肉与评级在同一区域展示。
+/// v1.5 逐房揭示：RC 壳盖 + RF 果肉，支持中途卖与全开评级。
 /// </summary>
 public class DurianOpener : MonoBehaviour
 {
     [SerializeField] private DurianSpriteConfig spriteConfig;
-
-    [Header("画面中央元素（同锚点叠放）")]
-    [FormerlySerializedAs("durianImage")]
+    [SerializeField] private DurianRoomConfig roomConfig;
     [SerializeField] private Image wholeDurianImage;
-    [SerializeField] private Image crackOverlayImage;
-    [SerializeField] private Image openedDurianImage;
-    [SerializeField] private Image shellLeftImage;
-    [SerializeField] private Image shellRightImage;
+    [SerializeField] private Transform roomSlotsParent;
+    [SerializeField] private GameObject roomSlotPrefab;
 
-    [Header("评级UI")]
-    [FormerlySerializedAs("ratingIcon")]
+    [Header("中途卖")]
+    [SerializeField] private GameObject sellMidwayGroup;
+    [SerializeField] private CanvasGroup sellMidwayCanvas;
+    [SerializeField] private Text sellMidwayPriceText;
+    [SerializeField] private Button sellMidwayButton;
+    [SerializeField] private Button continueButton;
+
+    [Header("评级")]
     [SerializeField] private Image ratingBadgeImage;
     [SerializeField] private Text ratingText;
     [SerializeField] private CanvasGroup ratingCanvasGroup;
 
-    [Header("果肉揭示区（v1.2 默认关闭底部房位弹出）")]
-    [FormerlySerializedAs("roomsRoot")]
-    [SerializeField] private Transform fleshGridParent;
-    [FormerlySerializedAs("roomMeatPrefab")]
-    [SerializeField] private GameObject fleshRoomPrefab;
-    [SerializeField] private GameObject floatTextPrefab;
-    [SerializeField] private bool revealFleshRoomsAtBottom = false;
+    [Header("分享（占位）")]
+    [SerializeField] private GameObject shareButtonGroup;
 
-    [Header("左右划壳动画")]
-    [SerializeField] private float shellSplitDistance = 160f;
-    [SerializeField] private float shellSplitDuration = 0.55f;
-    [SerializeField] private float shellSplitRotation = 22f;
-    [SerializeField] private float openedRevealDuration = 0.28f;
+    private StreakCounter _streakCounter;
+    private ShopManager _shopManager;
 
-    [SerializeField] private float roomSpacing = 80f;
-    [SerializeField] private float roomPopDuration = 0.3f;
-    [SerializeField] private int roomRevealDelayMs = 150;
-    [SerializeField] private float floatTextDuration = 0.8f;
+    private readonly List<RoomSlot> _roomSlots = new();
+    private readonly YieldGrade[] _roomGrades = new YieldGrade[5];
 
-    private float _currentCrackProgress;
-    private bool _isOpening;
-    private readonly List<GameObject> _spawnedRooms = new();
+    private DurianData _currentDurian;
+    private int _openedRoomCount;
+    private int _lastEstimate;
+    private bool _hasSoldMidway;
+    private bool _allOpened;
+
+    [Inject]
+    public void Construct(StreakCounter streakCounter, ShopManager shopManager)
+    {
+        _streakCounter = streakCounter;
+        _shopManager = shopManager;
+    }
 
     private void Awake()
     {
@@ -56,53 +57,29 @@ public class DurianOpener : MonoBehaviour
             ratingCanvasGroup = ratingBadgeImage.GetComponent<CanvasGroup>();
         }
 
-        SyncDurianLayerRects();
-        ResetVisualState();
+        if (sellMidwayCanvas == null && sellMidwayGroup != null)
+        {
+            sellMidwayCanvas = sellMidwayGroup.GetComponent<CanvasGroup>();
+        }
+
+        if (sellMidwayButton != null)
+        {
+            sellMidwayButton.onClick.RemoveAllListeners();
+            sellMidwayButton.onClick.AddListener(OnSellMidwayClicked);
+        }
+
+        if (continueButton != null)
+        {
+            continueButton.onClick.RemoveAllListeners();
+            continueButton.onClick.AddListener(() => OpenRemainingRoomsAsync().Forget());
+        }
+
+        HideTransientUi();
     }
 
     public void ResetVisualState()
     {
-        KillTweens();
-        _isOpening = false;
-        _currentCrackProgress = 0f;
-        ClearRooms();
-        ResetCrackOverlay();
-        ResetOpenedImage();
-        ResetWholeDurianImage();
-        ResetShellImages();
-        ResetRatingDisplay();
-
-        if (fleshGridParent != null)
-        {
-            fleshGridParent.gameObject.SetActive(false);
-        }
-    }
-
-    public void UpdateCrackProgress(float progress)
-    {
-        if (spriteConfig == null || crackOverlayImage == null)
-        {
-            return;
-        }
-
-        progress = Mathf.Clamp01(progress);
-        _currentCrackProgress = progress;
-        ResetShellImages();
-
-        if (progress <= 0f)
-        {
-            crackOverlayImage.enabled = false;
-            return;
-        }
-
-        crackOverlayImage.enabled = true;
-        var sprite = spriteConfig.GetCrackStage(progress);
-        if (sprite != null)
-        {
-            crackOverlayImage.sprite = sprite;
-        }
-
-        SetImageAlpha(crackOverlayImage, 1f);
+        Reset();
     }
 
     public void ApplyUnopenedSprite(DurianData durian)
@@ -112,483 +89,532 @@ public class DurianOpener : MonoBehaviour
             return;
         }
 
-        SyncDurianLayerRects();
-
-        if (spriteConfig != null)
-        {
-            wholeDurianImage.sprite = spriteConfig.GetUnopenedSprite(durian.variety, durian.appearance);
-            wholeDurianImage.color = Color.white;
-        }
-
-        wholeDurianImage.preserveAspect = true;
+        DurianDisplayUtil.ApplyUnopenedDurianVisual(
+            wholeDurianImage, spriteConfig, durian.variety, durian.appearance);
         wholeDurianImage.gameObject.SetActive(true);
-        SetImageAlpha(wholeDurianImage, 1f);
     }
 
-    public async UniTask OnSwipeComplete(DurianData durian)
+    public void PrepareOpen(DurianData durian)
     {
-        if (_isOpening)
+        Reset();
+        EnsureReferences();
+        _currentDurian = durian;
+        _streakCounter?.Reset();
+
+        ApplyUnopenedSprite(durian);
+
+        if (wholeDurianImage != null)
+        {
+            wholeDurianImage.gameObject.SetActive(true);
+            wholeDurianImage.raycastTarget = false;
+        }
+
+        AssignRoomGrades(durian.yieldRate);
+        SpawnRoomSlots();
+
+        if (sellMidwayGroup != null)
+        {
+            sellMidwayGroup.SetActive(false);
+        }
+
+        if (ratingCanvasGroup != null)
+        {
+            ratingCanvasGroup.alpha = 0f;
+        }
+
+        if (shareButtonGroup != null)
+        {
+            shareButtonGroup.SetActive(false);
+        }
+
+        _lastEstimate = EstimatePriceFromFullRooms(0);
+    }
+
+    public int GetLastEstimate() => _lastEstimate;
+
+    public async UniTask OpenRemainingRoomsAsync()
+    {
+        if (_hasSoldMidway || _allOpened)
         {
             return;
         }
 
-        _isOpening = true;
-        ClearRooms();
-        SyncDurianLayerRects();
-
-        if (spriteConfig != null && crackOverlayImage != null && spriteConfig.crackStage5 != null)
+        for (var i = _openedRoomCount; i < _roomSlots.Count; i++)
         {
-            crackOverlayImage.enabled = true;
-            crackOverlayImage.sprite = spriteConfig.crackStage5;
-            SetImageAlpha(crackOverlayImage, 1f);
+            await UniTask.Delay(200);
+            _roomSlots[i].TryOpen();
+        }
+    }
+
+    private void OnSellMidwayClicked()
+    {
+        if (_hasSoldMidway || _allOpened)
+        {
+            return;
         }
 
-        await UniTask.Delay(200);
+        _hasSoldMidway = true;
+        HideSellMidwayGroup();
 
-        PrepareOpenedLayer(durian);
-        PrepareShellHalves();
-
-        if (crackOverlayImage != null)
+        for (var i = _openedRoomCount; i < _roomSlots.Count; i++)
         {
-            await crackOverlayImage.DOFade(0f, 0.2f).AsyncWaitForCompletion();
-            crackOverlayImage.enabled = false;
+            _roomSlots[i].TryOpen();
         }
 
-        if (openedDurianImage != null)
+        EventBus.Publish(new DurianMidwaySoldEvent
         {
-            await openedDurianImage.DOFade(1f, openedRevealDuration).AsyncWaitForCompletion();
+            Durian = _currentDurian,
+            EstimatePrice = _lastEstimate
+        });
+    }
+
+    private void OnRoomOpened(RoomSlot slot)
+    {
+        if (_hasSoldMidway || _allOpened)
+        {
+            return;
         }
 
-        if (wholeDurianImage != null)
+        _openedRoomCount++;
+        var hasFlesh = slot.RoomGrade >= YieldGrade.High;
+        _streakCounter?.OnRoomRevealed(hasFlesh);
+        UpdateEstimate();
+        RefreshOpenableHighlights();
+
+        if (_openedRoomCount == 1)
         {
-            wholeDurianImage.DOFade(0f, openedRevealDuration);
+            ShowSellMidwayGroup();
         }
 
-        await PlayShellSplitAnimation();
-
-        if (wholeDurianImage != null)
+        if (_openedRoomCount >= _roomSlots.Count)
         {
-            wholeDurianImage.gameObject.SetActive(false);
-            SetImageAlpha(wholeDurianImage, 1f);
+            _allOpened = true;
+            HideSellMidwayGroup();
+            OnAllRoomsOpenedAsync().Forget();
+        }
+    }
+
+    private async UniTaskVoid OnAllRoomsOpenedAsync()
+    {
+        await UniTask.Delay(300);
+
+        var overall = EstimateOverallGrade();
+        PlayerProgression.Instance.UnlockCollection(_currentDurian.variety, overall, _lastEstimate);
+        PlayerProgression.Instance.TotalOpens++;
+        if (_currentDurian.variety == VarietyType.MaoShanWang)
+        {
+            PlayerProgression.Instance.MaoShanWangOpens++;
+        }
+        PlayerProgression.Instance.Save();
+
+        await ShowRatingAsync(overall);
+
+        if (overall == YieldGrade.Perfect || (_streakCounter != null && _streakCounter.CurrentStreak >= 3))
+        {
+            ShowShareButton();
         }
 
-        await UniTask.Delay(150);
-
-        if (revealFleshRoomsAtBottom)
-        {
-            await RevealFleshRooms(durian);
-        }
-
-        await ShowRating(durian);
-
-        var rating = YieldRatingUtil.GetRating(durian.yieldRate);
+        var ratingTextValue = GradeToRatingText(overall);
         EventBus.Publish(new DurianOpenedEvent
         {
-            Durian = durian,
-            Rating = rating,
-            YieldRate = durian.yieldRate
+            Durian = _currentDurian,
+            Rating = ratingTextValue,
+            YieldRate = _currentDurian.yieldRate
         });
-
-        _isOpening = false;
     }
 
-    public async UniTask OpenAsync(DurianData durian)
+    private void SpawnRoomSlots()
     {
-        await OnSwipeComplete(durian);
-    }
+        ClearRoomSlots();
 
-    private void PrepareOpenedLayer(DurianData durian)
-    {
-        if (openedDurianImage == null || spriteConfig == null)
+        if (roomSlotsParent == null || spriteConfig == null)
         {
+            Debug.LogError("[DurianOpener] 无法生成房位：roomSlotsParent 或 spriteConfig 缺失。");
             return;
         }
 
-        openedDurianImage.sprite = spriteConfig.GetOpenedSprite(durian.variety, durian.yieldGrade);
-        openedDurianImage.preserveAspect = true;
-        openedDurianImage.enabled = true;
-        SetImageAlpha(openedDurianImage, 0f);
-    }
+        var covers = spriteConfig.GetRcJz();
+        var positions = roomConfig != null && roomConfig.roomPositions != null && roomConfig.roomPositions.Length >= 5
+            ? roomConfig.roomPositions
+            : GetDefaultRoomPositions();
 
-    private void PrepareShellHalves()
-    {
-        if (spriteConfig == null)
+        var missingCoverCount = 0;
+        for (var i = 0; i < 5; i++)
         {
-            return;
-        }
-
-        if (shellLeftImage != null && spriteConfig.shellLeftHalf != null)
-        {
-            shellLeftImage.sprite = spriteConfig.shellLeftHalf;
-            shellLeftImage.preserveAspect = true;
-            shellLeftImage.enabled = true;
-            SetImageAlpha(shellLeftImage, 1f);
-            ResetShellTransform(shellLeftImage.rectTransform);
-        }
-
-        if (shellRightImage != null && spriteConfig.shellRightHalf != null)
-        {
-            shellRightImage.sprite = spriteConfig.shellRightHalf;
-            shellRightImage.preserveAspect = true;
-            shellRightImage.enabled = true;
-            SetImageAlpha(shellRightImage, 1f);
-            ResetShellTransform(shellRightImage.rectTransform);
-        }
-    }
-
-    private async UniTask PlayShellSplitAnimation()
-    {
-        if (shellLeftImage == null || shellRightImage == null)
-        {
-            await UniTask.Delay(Mathf.RoundToInt(shellSplitDuration * 1000f));
-            return;
-        }
-
-        var leftRect = shellLeftImage.rectTransform;
-        var rightRect = shellRightImage.rectTransform;
-        leftRect.DOKill();
-        rightRect.DOKill();
-        shellLeftImage.DOKill();
-        shellRightImage.DOKill();
-
-        var sequence = DOTween.Sequence();
-        sequence.Join(leftRect.DOAnchorPosX(-shellSplitDistance, shellSplitDuration).SetEase(Ease.OutCubic));
-        sequence.Join(rightRect.DOAnchorPosX(shellSplitDistance, shellSplitDuration).SetEase(Ease.OutCubic));
-        sequence.Join(leftRect.DORotate(new Vector3(0f, 0f, -shellSplitRotation), shellSplitDuration).SetEase(Ease.OutQuad));
-        sequence.Join(rightRect.DORotate(new Vector3(0f, 0f, shellSplitRotation), shellSplitDuration).SetEase(Ease.OutQuad));
-        sequence.Join(shellLeftImage.DOFade(0f, shellSplitDuration));
-        sequence.Join(shellRightImage.DOFade(0f, shellSplitDuration));
-
-        await sequence.AsyncWaitForCompletion();
-
-        shellLeftImage.enabled = false;
-        shellRightImage.enabled = false;
-        ResetShellTransform(leftRect);
-        ResetShellTransform(rightRect);
-        SetImageAlpha(shellLeftImage, 1f);
-        SetImageAlpha(shellRightImage, 1f);
-    }
-
-    private void SyncDurianLayerRects()
-    {
-        if (wholeDurianImage == null)
-        {
-            return;
-        }
-
-        var source = wholeDurianImage.rectTransform;
-        SyncRectTransform(crackOverlayImage, source);
-        SyncRectTransform(openedDurianImage, source);
-        SyncRectTransform(shellLeftImage, source);
-        SyncRectTransform(shellRightImage, source);
-
-        if (shellLeftImage != null)
-        {
-            shellLeftImage.rectTransform.pivot = new Vector2(1f, 0.5f);
-        }
-
-        if (shellRightImage != null)
-        {
-            shellRightImage.rectTransform.pivot = new Vector2(0f, 0.5f);
-        }
-    }
-
-    private static void SyncRectTransform(Image image, RectTransform source)
-    {
-        if (image == null)
-        {
-            return;
-        }
-
-        var rect = image.rectTransform;
-        rect.anchorMin = source.anchorMin;
-        rect.anchorMax = source.anchorMax;
-        rect.pivot = source.pivot;
-        rect.anchoredPosition = source.anchoredPosition;
-        rect.sizeDelta = source.sizeDelta;
-        rect.offsetMin = source.offsetMin;
-        rect.offsetMax = source.offsetMax;
-        rect.localRotation = Quaternion.identity;
-        rect.localScale = source.localScale;
-    }
-
-    private static void ResetShellTransform(RectTransform rect)
-    {
-        if (rect == null)
-        {
-            return;
-        }
-
-        rect.anchoredPosition = Vector2.zero;
-        rect.localRotation = Quaternion.identity;
-    }
-
-    private async UniTask RevealFleshRooms(DurianData durian)
-    {
-        if (fleshGridParent == null || durian.roomResults == null || fleshRoomPrefab == null)
-        {
-            return;
-        }
-
-        fleshGridParent.gameObject.SetActive(true);
-        var roomCount = durian.roomResults.Length;
-        for (var i = 0; i < roomCount; i++)
-        {
-            var hasMeat = durian.roomResults[i];
-            var roomObj = Instantiate(fleshRoomPrefab, fleshGridParent);
-            roomObj.transform.localPosition = GetRoomPosition(i, roomCount);
-
-            var image = roomObj.GetComponent<Image>();
-            if (image != null && spriteConfig != null)
+            RoomSlot slot;
+            if (roomSlotPrefab != null)
             {
-                var sprite = hasMeat ? spriteConfig.fleshPiece : spriteConfig.emptyPiece;
-                if (sprite != null)
+                var go = Instantiate(roomSlotPrefab, roomSlotsParent);
+                slot = go.GetComponent<RoomSlot>();
+                if (slot == null)
                 {
-                    image.sprite = sprite;
-                    image.color = Color.white;
+                    slot = go.AddComponent<RoomSlot>();
                 }
             }
-
-            roomObj.transform.localScale = Vector3.zero;
-            _spawnedRooms.Add(roomObj);
-
-            await roomObj.transform
-                .DOScale(1f, roomPopDuration)
-                .SetEase(Ease.OutBack)
-                .AsyncWaitForCompletion();
-
-            await UniTask.Delay(roomRevealDelayMs);
-        }
-    }
-
-    private async UniTask ShowRating(DurianData durian)
-    {
-        var rating = YieldRatingUtil.GetRating(durian.yieldRate);
-
-        if (ratingText != null)
-        {
-            ratingText.transform.DOKill();
-            ratingText.text = $"出肉率 {durian.yieldRate:F1}% · {rating}";
-            ratingText.transform.localScale = Vector3.one;
-        }
-
-        if (ratingBadgeImage != null)
-        {
-            ratingBadgeImage.transform.DOKill();
-            ratingBadgeImage.gameObject.SetActive(true);
-
-            if (spriteConfig != null)
+            else
             {
-                ratingBadgeImage.sprite = rating == "榴莲之王"
-                    ? spriteConfig.kingRating
-                    : spriteConfig.GetRatingSprite(rating);
+                slot = RoomSlotFactory.Create(roomSlotsParent);
             }
 
-            ratingBadgeImage.transform.localScale = Vector3.one;
+            if (slot == null)
+            {
+                continue;
+            }
+
+            var rect = slot.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.anchoredPosition = positions[i];
+            }
+
+            var cover = covers != null && i < covers.Length ? covers[i] : null;
+            if (cover == null)
+            {
+                missingCoverCount++;
+            }
+
+            slot.Init(i, cover, spriteConfig.GetRf(_roomGrades[i]), _roomGrades[i]);
+            slot.OnOpened += OnRoomOpened;
+            _roomSlots.Add(slot);
         }
 
-        var canvasGroup = ratingCanvasGroup ?? GetOrAddCanvasGroup(ratingBadgeImage);
-        if (canvasGroup != null)
+        if (_roomSlots.Count == 0)
         {
-            canvasGroup.alpha = 0f;
-            await canvasGroup.DOFade(1f, 0.3f).AsyncWaitForCompletion();
+            Debug.LogError("[DurianOpener] 未生成任何 RoomSlot，请检查 Prefab 或运行 Tools/llopen/Create RoomSlot Prefab。");
         }
-
-        if (ratingBadgeImage != null)
+        else if (missingCoverCount > 0)
         {
-            await ratingBadgeImage.transform
-                .DOPunchScale(new Vector3(0.3f, 0.3f, 0f), 0.5f, 2, 0.5f)
-                .AsyncWaitForCompletion();
+            Debug.LogWarning($"[DurianOpener] 有 {missingCoverCount} 个壳盖贴图未挂载，请执行 Tools/llopen/绑定 v1.5 贴图到 DurianSpriteConfig。");
         }
-
-        if (rating == "榴莲之王" && ratingText != null)
-        {
-            await ratingText.transform
-                .DOPunchScale(Vector3.one * 0.25f, 0.5f, 8, 0.5f)
-                .AsyncWaitForCompletion();
-        }
-
-        await UniTask.Delay(500);
     }
 
-    private Vector3 GetRoomPosition(int index, int total)
-    {
-        var startX = -(total - 1) * roomSpacing * 0.5f;
-        return new Vector3(startX + index * roomSpacing, 0f, 0f);
-    }
-
-    private void ResetCrackOverlay()
-    {
-        if (crackOverlayImage == null)
-        {
-            return;
-        }
-
-        crackOverlayImage.DOKill();
-        crackOverlayImage.enabled = false;
-        SetImageAlpha(crackOverlayImage, 1f);
-    }
-
-    private void ResetOpenedImage()
-    {
-        if (openedDurianImage == null)
-        {
-            return;
-        }
-
-        openedDurianImage.DOKill();
-        openedDurianImage.enabled = false;
-        SetImageAlpha(openedDurianImage, 0f);
-    }
-
-    private void ResetWholeDurianImage()
+    private void EnsureReferences()
     {
         if (wholeDurianImage == null)
         {
+            wholeDurianImage = transform.parent?.Find("DurianImage")?.GetComponent<Image>();
+        }
+
+        if (roomConfig == null)
+        {
+            roomConfig = Resources.Load<DurianRoomConfig>("JinzhengRoomConfig");
+        }
+
+        if (roomSlotsParent == null)
+        {
+            roomSlotsParent = EnsureRoomSlotsParent();
+        }
+
+        if (roomSlotPrefab == null)
+        {
+            roomSlotPrefab = Resources.Load<GameObject>("Prefabs/RoomSlot");
+        }
+
+        if (sellMidwayGroup == null)
+        {
+            sellMidwayGroup = transform.parent?.Find("SellMidwayGroup")?.gameObject;
+            sellMidwayCanvas = sellMidwayGroup?.GetComponent<CanvasGroup>();
+            sellMidwayPriceText = sellMidwayGroup?.transform.Find("PriceText")?.GetComponent<Text>();
+            sellMidwayButton = sellMidwayGroup?.transform.Find("SellMidwayButton")?.GetComponent<Button>();
+            continueButton = sellMidwayGroup?.transform.Find("ContinueButton")?.GetComponent<Button>();
+        }
+
+        if (ratingBadgeImage == null)
+        {
+            ratingBadgeImage = transform.parent?.Find("RatingIcon")?.GetComponent<Image>();
+            ratingText = transform.parent?.Find("Rating")?.GetComponent<Text>();
+            ratingCanvasGroup = ratingBadgeImage?.GetComponent<CanvasGroup>();
+        }
+
+        BindMidwayButtonsIfNeeded();
+    }
+
+    private void BindMidwayButtonsIfNeeded()
+    {
+        if (sellMidwayButton != null)
+        {
+            sellMidwayButton.onClick.RemoveAllListeners();
+            sellMidwayButton.onClick.AddListener(OnSellMidwayClicked);
+        }
+
+        if (continueButton != null)
+        {
+            continueButton.onClick.RemoveAllListeners();
+            continueButton.onClick.AddListener(() => OpenRemainingRoomsAsync().Forget());
+        }
+    }
+
+    private Transform EnsureRoomSlotsParent()
+    {
+        var openPage = transform.parent;
+        if (openPage == null)
+        {
+            return null;
+        }
+
+        var existing = openPage.Find("RoomSlotsParent");
+        if (existing != null)
+        {
+            existing.SetAsLastSibling();
+            return existing;
+        }
+
+        var go = new GameObject("RoomSlotsParent", typeof(RectTransform));
+        go.transform.SetParent(openPage, false);
+
+        var rect = go.GetComponent<RectTransform>();
+        if (wholeDurianImage != null)
+        {
+            var durianRect = wholeDurianImage.rectTransform;
+            rect.anchorMin = durianRect.anchorMin;
+            rect.anchorMax = durianRect.anchorMax;
+            rect.offsetMin = durianRect.offsetMin;
+            rect.offsetMax = durianRect.offsetMax;
+            rect.pivot = durianRect.pivot;
+        }
+        else
+        {
+            rect.anchorMin = new Vector2(0.15f, 0.25f);
+            rect.anchorMax = new Vector2(0.85f, 0.75f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+        }
+
+        go.transform.SetAsLastSibling();
+        return go.transform;
+    }
+
+    private void RefreshOpenableHighlights()
+    {
+        foreach (var slot in _roomSlots)
+        {
+            if (slot != null && !slot.IsOpened)
+            {
+                slot.SetOpenableHighlight(true);
+            }
+        }
+    }
+
+    private static Vector2[] GetDefaultRoomPositions()
+    {
+        return new[]
+        {
+            new Vector2(0f, -80f),
+            new Vector2(-110f, -30f),
+            new Vector2(110f, -30f),
+            new Vector2(-90f, 80f),
+            new Vector2(90f, 80f)
+        };
+    }
+
+    private void AssignRoomGrades(float yieldRate)
+    {
+        var fullRooms = Mathf.Clamp(Mathf.RoundToInt(yieldRate / 100f * 5f), 0, 5);
+        for (var i = 0; i < 5; i++)
+        {
+            _roomGrades[i] = i < fullRooms ? YieldGrade.Perfect : YieldGrade.Empty;
+        }
+
+        for (var i = 4; i > 0; i--)
+        {
+            var j = Random.Range(0, i + 1);
+            var temp = _roomGrades[i];
+            _roomGrades[i] = _roomGrades[j];
+            _roomGrades[j] = temp;
+        }
+    }
+
+    private void UpdateEstimate()
+    {
+        var fullCount = 0;
+        for (var i = 0; i < _openedRoomCount; i++)
+        {
+            if (_roomGrades[i] >= YieldGrade.High)
+            {
+                fullCount++;
+            }
+        }
+
+        var ratio = (float)fullCount / Mathf.Max(1, _openedRoomCount);
+        var remaining = 5 - _openedRoomCount;
+        var uncertainty = remaining / 5f * Random.Range(-0.3f, 0.3f);
+        var estFull = fullCount + remaining * ratio * (1f + uncertainty);
+        var shopBonus = _shopManager != null ? _shopManager.GetSellBonus() : 0f;
+        var estimate = Mathf.RoundToInt(estFull * 50f * (1f + shopBonus));
+
+        if (sellMidwayPriceText != null)
+        {
+            sellMidwayPriceText.text = $"{estimate} 金币";
+            sellMidwayPriceText.color = estimate >= _lastEstimate ? Color.green : Color.red;
+            sellMidwayPriceText.transform.DOKill();
+            sellMidwayPriceText.transform.DOPunchScale(Vector3.one * 0.1f, 0.15f);
+        }
+
+        _lastEstimate = estimate;
+    }
+
+    private int EstimatePriceFromFullRooms(int fullCount)
+    {
+        var shopBonus = _shopManager != null ? _shopManager.GetSellBonus() : 0f;
+        return Mathf.RoundToInt(fullCount * 50f * (1f + shopBonus));
+    }
+
+    private YieldGrade EstimateOverallGrade()
+    {
+        var full = 0;
+        for (var i = 0; i < 5; i++)
+        {
+            if (_roomGrades[i] >= YieldGrade.High)
+            {
+                full++;
+            }
+        }
+
+        return full switch
+        {
+            0 => YieldGrade.Empty,
+            1 => YieldGrade.Low,
+            2 => YieldGrade.Normal,
+            3 => YieldGrade.High,
+            _ => YieldGrade.Perfect
+        };
+    }
+
+    private async UniTask ShowRatingAsync(YieldGrade grade)
+    {
+        if (ratingBadgeImage == null || spriteConfig == null)
+        {
             return;
         }
 
-        wholeDurianImage.DOKill();
-        wholeDurianImage.gameObject.SetActive(true);
-        SetImageAlpha(wholeDurianImage, 1f);
-    }
+        ratingBadgeImage.sprite = spriteConfig.GetRatingIcon(grade);
+        ratingBadgeImage.gameObject.SetActive(true);
 
-    private void ResetShellImages()
-    {
-        if (shellLeftImage != null)
-        {
-            shellLeftImage.DOKill();
-            shellLeftImage.enabled = false;
-            SetImageAlpha(shellLeftImage, 1f);
-            ResetShellTransform(shellLeftImage.rectTransform);
-        }
-
-        if (shellRightImage != null)
-        {
-            shellRightImage.DOKill();
-            shellRightImage.enabled = false;
-            SetImageAlpha(shellRightImage, 1f);
-            ResetShellTransform(shellRightImage.rectTransform);
-        }
-    }
-
-    private void ResetRatingDisplay()
-    {
         if (ratingText != null)
         {
-            ratingText.text = string.Empty;
-            ratingText.transform.DOKill();
-            ratingText.transform.localScale = Vector3.one;
-        }
-
-        if (ratingBadgeImage != null)
-        {
-            ratingBadgeImage.transform.DOKill();
-            ratingBadgeImage.transform.localScale = Vector3.one;
-            ratingBadgeImage.gameObject.SetActive(false);
+            ratingText.text = GradeToRatingText(grade);
         }
 
         if (ratingCanvasGroup != null)
         {
             ratingCanvasGroup.DOKill();
             ratingCanvasGroup.alpha = 0f;
+            await ratingCanvasGroup.DOFade(1f, 0.3f).AsyncWaitForCompletion();
+        }
+
+        ratingBadgeImage.rectTransform.DOKill();
+        ratingBadgeImage.rectTransform.localScale = Vector3.zero;
+        await ratingBadgeImage.rectTransform.DOScale(1f, 0.4f).SetEase(Ease.OutBack).AsyncWaitForCompletion();
+    }
+
+    private void ShowShareButton()
+    {
+        if (shareButtonGroup != null)
+        {
+            shareButtonGroup.SetActive(true);
         }
     }
 
-    private static void SetImageAlpha(Image image, float alpha)
+    private void ShowSellMidwayGroup()
     {
-        if (image == null)
+        if (sellMidwayGroup == null)
         {
             return;
         }
 
-        var color = image.color;
-        color.a = alpha;
-        image.color = color;
+        sellMidwayGroup.SetActive(true);
+        if (sellMidwayCanvas != null)
+        {
+            sellMidwayCanvas.alpha = 0f;
+            sellMidwayCanvas.DOFade(1f, 0.2f);
+        }
     }
 
-    private static CanvasGroup GetOrAddCanvasGroup(Image image)
+    private void HideSellMidwayGroup()
     {
-        if (image == null)
+        if (sellMidwayGroup != null)
         {
-            return null;
+            sellMidwayGroup.SetActive(false);
         }
-
-        var canvasGroup = image.GetComponent<CanvasGroup>();
-        if (canvasGroup == null)
-        {
-            canvasGroup = image.gameObject.AddComponent<CanvasGroup>();
-        }
-
-        return canvasGroup;
     }
 
-    private void ClearRooms()
+    private void HideTransientUi()
     {
-        foreach (var room in _spawnedRooms)
+        HideSellMidwayGroup();
+        if (ratingCanvasGroup != null)
         {
-            if (room != null)
+            ratingCanvasGroup.alpha = 0f;
+        }
+
+        if (shareButtonGroup != null)
+        {
+            shareButtonGroup.SetActive(false);
+        }
+    }
+
+    private void Reset()
+    {
+        KillTweens();
+        ClearRoomSlots();
+        _openedRoomCount = 0;
+        _lastEstimate = 0;
+        _hasSoldMidway = false;
+        _allOpened = false;
+        HideTransientUi();
+
+        if (wholeDurianImage != null)
+        {
+            wholeDurianImage.gameObject.SetActive(false);
+        }
+    }
+
+    private void ClearRoomSlots()
+    {
+        foreach (var slot in _roomSlots)
+        {
+            if (slot != null)
             {
-                room.transform.DOKill();
-                Destroy(room);
+                slot.OnOpened -= OnRoomOpened;
+                Destroy(slot.gameObject);
             }
         }
 
-        _spawnedRooms.Clear();
+        _roomSlots.Clear();
     }
 
     private void KillTweens()
     {
-        if (wholeDurianImage != null)
+        if (sellMidwayPriceText != null)
         {
-            wholeDurianImage.DOKill();
+            sellMidwayPriceText.transform.DOKill();
         }
 
-        if (crackOverlayImage != null)
+        if (sellMidwayCanvas != null)
         {
-            crackOverlayImage.DOKill();
-        }
-
-        if (openedDurianImage != null)
-        {
-            openedDurianImage.DOKill();
-        }
-
-        if (shellLeftImage != null)
-        {
-            shellLeftImage.DOKill();
-            shellLeftImage.rectTransform.DOKill();
-        }
-
-        if (shellRightImage != null)
-        {
-            shellRightImage.DOKill();
-            shellRightImage.rectTransform.DOKill();
-        }
-
-        if (fleshGridParent != null)
-        {
-            fleshGridParent.DOKill(true);
-        }
-
-        if (ratingText != null)
-        {
-            ratingText.transform.DOKill();
-        }
-
-        if (ratingBadgeImage != null)
-        {
-            ratingBadgeImage.transform.DOKill();
+            sellMidwayCanvas.DOKill();
         }
 
         if (ratingCanvasGroup != null)
         {
             ratingCanvasGroup.DOKill();
         }
+
+        if (ratingBadgeImage != null)
+        {
+            ratingBadgeImage.rectTransform.DOKill();
+        }
     }
 
-    private void OnDisable()
+    private static string GradeToRatingText(YieldGrade grade)
     {
-        KillTweens();
+        return grade switch
+        {
+            YieldGrade.Empty => "空壳",
+            YieldGrade.Low => "小亏",
+            YieldGrade.Normal => "回本",
+            YieldGrade.High => "小赚",
+            YieldGrade.Perfect => "大赚",
+            _ => "回本"
+        };
     }
 }

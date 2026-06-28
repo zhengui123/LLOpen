@@ -166,33 +166,10 @@ public class BagPage : MonoBehaviour
         card.transform.localScale = Vector3.zero;
 
         var blockImage = card.transform.Find("Block")?.GetComponent<Image>();
-        if (blockImage != null)
-        {
-            if (spriteConfig != null)
-            {
-                blockImage.sprite = spriteConfig.GetUnopenedSprite(durian.variety, durian.appearance);
-                blockImage.color = Color.white;
-                blockImage.preserveAspect = true;
-            }
-            else
-            {
-                blockImage.color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
-            }
-        }
+        DurianDisplayUtil.ApplyUnopenedDurianVisual(blockImage, spriteConfig, durian.variety, durian.appearance);
 
         var appearanceIcon = card.transform.Find("AppearanceIcon")?.GetComponent<Image>();
-        if (appearanceIcon != null)
-        {
-            if (spriteConfig != null)
-            {
-                appearanceIcon.sprite = spriteConfig.GetAppearanceIcon(durian.appearance);
-                appearanceIcon.gameObject.SetActive(true);
-            }
-            else
-            {
-                appearanceIcon.gameObject.SetActive(false);
-            }
-        }
+        DurianDisplayUtil.ApplyAppearanceIcon(appearanceIcon, spriteConfig, durian.appearance);
 
         var varietyText = card.transform.Find("VarietyText")?.GetComponent<Text>();
         if (varietyText != null)

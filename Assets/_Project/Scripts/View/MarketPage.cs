@@ -337,14 +337,16 @@ public class MarketPage : MonoBehaviour
             return;
         }
 
-        if (variety == _highlightedVariety)
+        // 切换品种：立即刷新市场（换基底贴图 D-01/D-02/D-03）
+        // 再次点击当前高亮品种：二次确认，免费重 roll 一批
+        var isReselect = variety == _highlightedVariety;
+        var isSwitchVariety = variety != _marketManager.CurrentVariety;
+        _highlightedVariety = variety;
+        UpdateVarietyHighlight();
+
+        if (isReselect || isSwitchVariety)
         {
             _marketManager.RefreshMarket(variety);
-        }
-        else
-        {
-            _highlightedVariety = variety;
-            UpdateVarietyHighlight();
         }
     }
 
@@ -615,16 +617,8 @@ public class MarketPage : MonoBehaviour
             var durian = durians[i];
             if (durianImages != null && i < durianImages.Length && durianImages[i] != null)
             {
-                if (spriteConfig != null)
-                {
-                    durianImages[i].sprite = spriteConfig.GetUnopenedSprite(durian.variety, durian.appearance);
-                    durianImages[i].color = Color.white;
-                    durianImages[i].preserveAspect = true;
-                }
-                else
-                {
-                    durianImages[i].color = DurianDisplayUtil.GetAppearanceColor(durian.appearance);
-                }
+                DurianDisplayUtil.ApplyUnopenedDurianVisual(
+                    durianImages[i], spriteConfig, durian.variety, durian.appearance);
             }
 
             if (appearanceTexts != null && i < appearanceTexts.Length && appearanceTexts[i] != null)
@@ -634,15 +628,7 @@ public class MarketPage : MonoBehaviour
 
             if (appearanceIcons != null && i < appearanceIcons.Length && appearanceIcons[i] != null)
             {
-                if (spriteConfig != null)
-                {
-                    appearanceIcons[i].sprite = spriteConfig.GetAppearanceIcon(durian.appearance);
-                    appearanceIcons[i].gameObject.SetActive(true);
-                }
-                else
-                {
-                    appearanceIcons[i].gameObject.SetActive(false);
-                }
+                DurianDisplayUtil.ApplyAppearanceIcon(appearanceIcons[i], spriteConfig, durian.appearance);
             }
 
             var canAfford = PlayerData.Instance.Gold >= durian.finalPrice;

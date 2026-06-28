@@ -85,11 +85,14 @@ public class SellPage : MonoBehaviour
         }
     }
 
-    public void Show(DurianData durian, string rating)
+    private int _overrideSellPrice = -1;
+
+    public void Show(DurianData durian, string rating, int overridePrice = -1)
     {
         KillTweens();
         _isSelling = false;
         _adBonusApplied = false;
+        _overrideSellPrice = overridePrice;
         _sellManager.ClearTemporaryBonus();
         _currentDurian = durian;
         _currentRating = rating;
@@ -162,7 +165,7 @@ public class SellPage : MonoBehaviour
             return;
         }
 
-        durianResultImage.sprite = spriteConfig.GetOpenedSprite(_currentDurian.variety, _currentDurian.yieldGrade);
+        durianResultImage.sprite = spriteConfig.GetRf(_currentDurian.yieldGrade);
         durianResultImage.color = Color.white;
         durianResultImage.preserveAspect = true;
         durianResultImage.gameObject.SetActive(durianResultImage.sprite != null);
@@ -217,6 +220,13 @@ public class SellPage : MonoBehaviour
         StopAdBonusPulse();
     }
 
+    private int GetDisplaySellPrice()
+    {
+        return _overrideSellPrice >= 0
+            ? _overrideSellPrice
+            : _sellManager.CalculateSellPrice(_currentDurian);
+    }
+
     private async void OnConfirmSell()
     {
         if (_isSelling)
@@ -228,14 +238,22 @@ public class SellPage : MonoBehaviour
         SetButtonsInteractable(false);
         StopAdBonusPulse();
 
-        var price = _sellManager.CalculateSellPrice(_currentDurian);
+        var price = GetDisplaySellPrice();
         var goldBefore = PlayerData.Instance.Gold;
 
         var startPos = GetCoinStartWorldPosition();
         var targetPos = GetCoinTargetWorldPosition();
         await PlayCoinAnimation(price, startPos, targetPos);
 
-        _sellManager.SellDurian(_currentDurian);
+        if (_overrideSellPrice >= 0)
+        {
+            _sellManager.SellAtPrice(_currentDurian, _overrideSellPrice);
+        }
+        else
+        {
+            _sellManager.SellDurian(_currentDurian);
+        }
+
         RemoveFromBag(_currentDurian);
 
         await PlayGoldCounterAsync(goldBefore, PlayerData.Instance.Gold, price);
@@ -426,7 +444,7 @@ public class SellPage : MonoBehaviour
 
         if (priceText != null)
         {
-            priceText.text = $"回收价 {_sellManager.CalculateSellPrice(_currentDurian)} 金币";
+            priceText.text = $"回收价 {GetDisplaySellPrice()} 金币";
         }
     }
 

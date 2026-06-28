@@ -3,13 +3,13 @@
 /// </summary>
 public class ShopManager
 {
-    private static readonly int[] DefaultUpgradeCosts = { 0, 500 };
-    private static readonly float[] DefaultSellBonuses = { 0f, 0.2f };
+    private static readonly int[] DefaultUpgradeCosts = { 0, 500, 1500 };
+    private static readonly float[] DefaultSellBonuses = { 0f, 0.2f, 0.35f };
 
     private readonly ShopConfig _config;
 
     public int CurrentLevel { get; private set; } = 1;
-    public int MaxLevel => 2;
+    public int MaxLevel => 3;
 
     public ShopManager(ShopConfig config)
     {

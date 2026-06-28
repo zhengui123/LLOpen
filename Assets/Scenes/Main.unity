@@ -3318,7 +3318,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 05c3f37764e00bb468ca98bec9eafb41, type: 3}
+  m_Sprite: {fileID: 21300000, guid: f019ba3c9ae681140913f3c9ab2d0314, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -4746,7 +4746,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 82.94405, y: 80.67605}
+  m_SizeDelta: {x: 82.94405, y: 82.94405}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &948855338
 MonoBehaviour:
@@ -4768,7 +4768,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 3be83b9ff1913294591b1e7afd74621c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 48dc1e0e8e8beb345aae74d43fe23c51, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -7991,28 +7991,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spriteConfig: {fileID: 11400000, guid: 830997ccfa541134489833ad2fc1309b, type: 2}
+  roomConfig: {fileID: 0}
   wholeDurianImage: {fileID: 690461730}
-  crackOverlayImage: {fileID: 1027236693}
-  openedDurianImage: {fileID: 1823931807}
-  shellLeftImage: {fileID: 1213237629}
-  shellRightImage: {fileID: 531663521}
+  roomSlotsParent: {fileID: 0}
+  roomSlotPrefab: {fileID: 0}
+  sellMidwayGroup: {fileID: 0}
+  sellMidwayCanvas: {fileID: 0}
+  sellMidwayPriceText: {fileID: 0}
+  sellMidwayButton: {fileID: 0}
+  continueButton: {fileID: 0}
   ratingBadgeImage: {fileID: 1537345930}
   ratingText: {fileID: 1215369940}
   ratingCanvasGroup: {fileID: 1537345932}
-  fleshGridParent: {fileID: 259529435}
-  fleshRoomPrefab: {fileID: 350430347471269788, guid: 23dadb2c4d81ac545b5b4c40474fbf62,
-    type: 3}
-  floatTextPrefab: {fileID: 3164169666478023569, guid: ef334288614338c4aba9ec20c6cbee4e,
-    type: 3}
-  revealFleshRoomsAtBottom: 0
-  shellSplitDistance: 160
-  shellSplitDuration: 0.55
-  shellSplitRotation: 22
-  openedRevealDuration: 0.28
-  roomSpacing: 1.2
-  roomPopDuration: 0.25
-  roomRevealDelayMs: 150
-  floatTextDuration: 0.8
+  shareButtonGroup: {fileID: 0}
 --- !u!1 &1332407792
 GameObject:
   m_ObjectHideFlags: 0
@@ -9201,7 +9192,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 9348222e51ddd2c46b0a6ed66f2174e7, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 6bb5dcf2605d7164580e8eb2f8ea8b16, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -9832,6 +9823,7 @@ MonoBehaviour:
   appearanceConfigs: []
   shopConfig: {fileID: 0}
   durianSpriteConfig: {fileID: 11400000, guid: 830997ccfa541134489833ad2fc1309b, type: 2}
+  jinzhengRoomConfig: {fileID: 0}
   uiRoot: {fileID: 695461752}
   marketPage: {fileID: 393950300}
   openPage: {fileID: 2144999083}
@@ -11283,16 +11275,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7588b2f8cdd1e19458a550c5ab99ed1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  knifeTool: {fileID: 1714394879}
   durianOpener: {fileID: 1331326698}
   spriteConfig: {fileID: 11400000, guid: 830997ccfa541134489833ad2fc1309b, type: 2}
   durianImage: {fileID: 690461730}
   guideText: {fileID: 1928465423}
-  swipeGuideImage: {fileID: 646301620}
   estimateText: {fileID: 1033072561}
   sellButton: {fileID: 1064490366}
   reviveButton: {fileID: 514007551}
   backButton: {fileID: 627071075}
+  comboDisplay: {fileID: 0}
+  comboFlameImage: {fileID: 0}
+  comboText: {fileID: 0}
 --- !u!114 &2144999084
 MonoBehaviour:
   m_ObjectHideFlags: 0

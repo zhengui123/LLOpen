@@ -68,7 +68,8 @@ public class KnifeTool : MonoBehaviour
         _swipeDistance = 0f;
         ResetCrackLine();
         ResetKnifeImage();
-        enabled = true;
+        // v1.5 改为 RoomSlot 逐房开果，划刀流程停用
+        enabled = false;
     }
 
     private void Update()
@@ -173,11 +174,6 @@ public class KnifeTool : MonoBehaviour
         if (_swipeDistance < swipeThreshold)
         {
             HideKnifeImmediate();
-            if (durianOpener != null)
-            {
-                durianOpener.UpdateCrackProgress(0f);
-            }
-
             return;
         }
 
@@ -200,19 +196,13 @@ public class KnifeTool : MonoBehaviour
 
         if (durianOpener != null)
         {
-            await durianOpener.OnSwipeComplete(_currentDurian);
+            await durianOpener.OpenRemainingRoomsAsync();
         }
     }
 
     private void ApplyCrackProgress()
     {
-        if (durianOpener == null || swipeThreshold <= 0f)
-        {
-            return;
-        }
-
-        var progress = Mathf.Clamp01(_swipeDistance / swipeThreshold);
-        durianOpener.UpdateCrackProgress(progress);
+        // v1.5 已移除 CP 开裂叠加，保留空实现避免旧场景误启用划刀时报错
     }
 
     private async UniTaskVoid PlayCrackFeedback()
