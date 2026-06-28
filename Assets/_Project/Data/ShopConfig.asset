@@ -12,7 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2dca3b524a63dcc4f8166862244c2f81, type: 3}
   m_Name: ShopConfig
   m_EditorClassIdentifier: 
-  upgradeCosts: 00000000f4010000
+  upgradeCosts:
+  - 0
+  - 500
+  - 1500
   sellBonuses:
   - 0
   - 0.2
+  - 0.35

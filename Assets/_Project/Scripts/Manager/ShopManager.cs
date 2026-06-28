@@ -1,5 +1,5 @@
 /// <summary>
-/// 商店管理器（MVP 仅 2 级）：升级费用与售卖加成由 ShopConfig 驱动。
+/// 商店管理器（v1.5 3 级）：升级费用与售卖加成由 ShopConfig 驱动，不足时回退默认值。
 /// </summary>
 public class ShopManager
 {
@@ -9,7 +9,7 @@ public class ShopManager
     private readonly ShopConfig _config;
 
     public int CurrentLevel { get; private set; } = 1;
-    public int MaxLevel => 3;
+    public int MaxLevel => DefaultUpgradeCosts.Length;
 
     public ShopManager(ShopConfig config)
     {
@@ -23,8 +23,7 @@ public class ShopManager
             return false;
         }
 
-        var costs = GetUpgradeCosts();
-        return PlayerData.Instance.Gold >= costs[CurrentLevel];
+        return PlayerData.Instance.Gold >= GetUpgradeCost();
     }
 
     public void Upgrade()
@@ -34,35 +33,24 @@ public class ShopManager
             return;
         }
 
-        var costs = GetUpgradeCosts();
-        PlayerData.Instance.Gold -= costs[CurrentLevel];
+        PlayerData.Instance.Gold -= GetUpgradeCost();
         CurrentLevel++;
         EventBus.Publish(new ShopUpgradedEvent { NewLevel = CurrentLevel });
     }
 
     public float GetSellBonus()
     {
-        var bonuses = GetSellBonuses();
         var index = CurrentLevel - 1;
-        if (index < 0 || index >= bonuses.Length)
-        {
-            return 0f;
-        }
-
-        return bonuses[index];
+        return GetSellBonusAtIndex(index);
     }
 
-    /// <summary>
-    /// 下一级商店等级；已满级时返回当前等级。
-    /// </summary>
+    /// <summary>下一级商店等级；已满级时返回当前等级。</summary>
     public int GetNextLevel()
     {
         return CurrentLevel >= MaxLevel ? CurrentLevel : CurrentLevel + 1;
     }
 
-    /// <summary>
-    /// 从当前等级升到下一级所需金币；已满级返回 0。
-    /// </summary>
+    /// <summary>从当前等级升到下一级所需金币；已满级返回 0。</summary>
     public int GetUpgradeCost()
     {
         if (CurrentLevel >= MaxLevel)
@@ -70,13 +58,10 @@ public class ShopManager
             return 0;
         }
 
-        var costs = GetUpgradeCosts();
-        return costs[CurrentLevel];
+        return GetUpgradeCostAtIndex(CurrentLevel);
     }
 
-    /// <summary>
-    /// 升级后下一级的售卖加成（用于未满级时的效果预告）。
-    /// </summary>
+    /// <summary>升级后下一级的售卖加成（用于未满级时的效果预告）。</summary>
     public float GetNextLevelSellBonus()
     {
         if (CurrentLevel >= MaxLevel)
@@ -84,27 +69,80 @@ public class ShopManager
             return GetSellBonus();
         }
 
-        var bonuses = GetSellBonuses();
-        var nextIndex = CurrentLevel;
-        if (nextIndex < 0 || nextIndex >= bonuses.Length)
+        return GetSellBonusAtIndex(CurrentLevel);
+    }
+
+    private int GetUpgradeCostAtIndex(int levelIndex)
+    {
+        var costs = GetUpgradeCosts();
+        if (levelIndex >= 0 && levelIndex < costs.Length)
         {
-            return 0f;
+            return costs[levelIndex];
         }
 
-        return bonuses[nextIndex];
+        return 0;
+    }
+
+    private float GetSellBonusAtIndex(int bonusIndex)
+    {
+        var bonuses = GetSellBonuses();
+        if (bonusIndex >= 0 && bonusIndex < bonuses.Length)
+        {
+            return bonuses[bonusIndex];
+        }
+
+        return 0f;
     }
 
     private int[] GetUpgradeCosts()
     {
-        return _config != null && _config.upgradeCosts != null && _config.upgradeCosts.Length > 0
-            ? _config.upgradeCosts
-            : DefaultUpgradeCosts;
+        return MergeIntArray(DefaultUpgradeCosts, _config?.upgradeCosts);
     }
 
     private float[] GetSellBonuses()
     {
-        return _config != null && _config.sellBonuses != null && _config.sellBonuses.Length > 0
-            ? _config.sellBonuses
-            : DefaultSellBonuses;
+        return MergeFloatArray(DefaultSellBonuses, _config?.sellBonuses);
+    }
+
+    private static int[] MergeIntArray(int[] defaults, int[] overrides)
+    {
+        var result = new int[defaults.Length];
+        for (var i = 0; i < defaults.Length; i++)
+        {
+            result[i] = defaults[i];
+        }
+
+        if (overrides == null)
+        {
+            return result;
+        }
+
+        for (var i = 0; i < overrides.Length && i < result.Length; i++)
+        {
+            result[i] = overrides[i];
+        }
+
+        return result;
+    }
+
+    private static float[] MergeFloatArray(float[] defaults, float[] overrides)
+    {
+        var result = new float[defaults.Length];
+        for (var i = 0; i < defaults.Length; i++)
+        {
+            result[i] = defaults[i];
+        }
+
+        if (overrides == null)
+        {
+            return result;
+        }
+
+        for (var i = 0; i < overrides.Length && i < result.Length; i++)
+        {
+            result[i] = overrides[i];
+        }
+
+        return result;
     }
 }

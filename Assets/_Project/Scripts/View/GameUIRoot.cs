@@ -14,12 +14,15 @@ public class GameUIRoot : MonoBehaviour
     [SerializeField] private SellPage sellPage;
     [SerializeField] private BagPage bagPage;
     [SerializeField] private ShopPage shopPage;
+    [SerializeField] private CollectionPage collectionPage;
+    [SerializeField] private MainShellUI mainShell;
 
     public MarketPage Market => marketPage;
     public OpenPage Open => openPage;
     public SellPage Sell => sellPage;
     public BagPage Bag => bagPage;
     public ShopPage Shop => shopPage;
+    public CollectionPage Collection => collectionPage;
 
     private GameObject _currentPage;
     private bool _firstPageShown;
@@ -32,6 +35,7 @@ public class GameUIRoot : MonoBehaviour
     public void ShowMarket()
     {
         ShowPage(marketPage != null ? marketPage.gameObject : null, PageTransition.Direction.FromLeft);
+        UpdateMainShell(marketPage?.gameObject, MainShellUI.HubPage.Market);
     }
 
     public void ShowOpen(DurianData durian)
@@ -43,6 +47,7 @@ public class GameUIRoot : MonoBehaviour
 
         ShowPage(openPage.gameObject, PageTransition.Direction.FromRight);
         openPage.Show(durian);
+        UpdateMainShell(openPage.gameObject, MainShellUI.HubPage.Market);
     }
 
     public void ShowSell(DurianData durian, string rating, int overridePrice = -1)
@@ -54,18 +59,28 @@ public class GameUIRoot : MonoBehaviour
 
         ShowPage(sellPage.gameObject, PageTransition.Direction.FromRight);
         sellPage.Show(durian, rating, overridePrice);
+        UpdateMainShell(sellPage.gameObject, MainShellUI.HubPage.Market);
     }
 
     public void ShowBag()
     {
         ShowPage(bagPage != null ? bagPage.gameObject : null, PageTransition.Direction.FromRight);
         bagPage?.Refresh();
+        UpdateMainShell(bagPage?.gameObject, MainShellUI.HubPage.Bag);
     }
 
     public void ShowShop()
     {
         ShowPage(shopPage != null ? shopPage.gameObject : null, PageTransition.Direction.FromRight);
         shopPage?.Refresh();
+        UpdateMainShell(shopPage?.gameObject, MainShellUI.HubPage.Shop);
+    }
+
+    public void ShowCollection()
+    {
+        ShowPage(collectionPage != null ? collectionPage.gameObject : null, PageTransition.Direction.FromRight);
+        collectionPage?.Refresh();
+        UpdateMainShell(collectionPage?.gameObject, MainShellUI.HubPage.Collection);
     }
 
     private void ShowPage(GameObject targetPage, PageTransition.Direction direction)
@@ -99,6 +114,7 @@ public class GameUIRoot : MonoBehaviour
 
         _currentPage = targetPage;
         UpdateBackground(targetPage);
+        UpdateMainShellForPage(targetPage);
     }
 
     private void SetActivePageImmediate(GameObject activePage)
@@ -153,8 +169,73 @@ public class GameUIRoot : MonoBehaviour
             }
         }
 
+        if (collectionPage != null)
+        {
+            var active = collectionPage.gameObject == activePage;
+            collectionPage.gameObject.SetActive(active);
+            if (active)
+            {
+                PageTransition.ShowImmediate(PageTransition.GetOrAddCanvasGroup(collectionPage.gameObject));
+            }
+        }
+
         _currentPage = activePage;
         UpdateBackground(activePage);
+        UpdateMainShellForPage(activePage);
+    }
+
+    private void UpdateMainShellForPage(GameObject activePage)
+    {
+        if (activePage == null)
+        {
+            return;
+        }
+
+        if (marketPage != null && activePage == marketPage.gameObject)
+        {
+            UpdateMainShell(activePage, MainShellUI.HubPage.Market);
+            return;
+        }
+
+        if (bagPage != null && activePage == bagPage.gameObject)
+        {
+            UpdateMainShell(activePage, MainShellUI.HubPage.Bag);
+            return;
+        }
+
+        if (shopPage != null && activePage == shopPage.gameObject)
+        {
+            UpdateMainShell(activePage, MainShellUI.HubPage.Shop);
+            return;
+        }
+
+        if (collectionPage != null && activePage == collectionPage.gameObject)
+        {
+            UpdateMainShell(activePage, MainShellUI.HubPage.Collection);
+            return;
+        }
+
+        UpdateMainShell(activePage, MainShellUI.HubPage.Market);
+    }
+
+    private void UpdateMainShell(GameObject activePage, MainShellUI.HubPage hubPage)
+    {
+        if (mainShell == null)
+        {
+            return;
+        }
+
+        var isHubPage = activePage != null &&
+            (marketPage != null && activePage == marketPage.gameObject ||
+             bagPage != null && activePage == bagPage.gameObject ||
+             shopPage != null && activePage == shopPage.gameObject ||
+             collectionPage != null && activePage == collectionPage.gameObject);
+
+        mainShell.SetHubShellVisible(isHubPage);
+        if (isHubPage)
+        {
+            mainShell.SetActiveHub(hubPage);
+        }
     }
 
     private void UpdateBackground(GameObject activePage)

@@ -6,7 +6,7 @@ using UnityEngine.UI;
 using VContainer;
 
 /// <summary>
-/// 商店升级页（MVP 2 级）+ 去广告卡展示 + 升级光柱特效。
+/// 商店升级页（v1.5 3 级）+ 去广告卡展示 + 升级光柱特效。
 /// </summary>
 public class ShopPage : MonoBehaviour
 {
@@ -131,8 +131,10 @@ public class ShopPage : MonoBehaviour
             else
             {
                 var nextLevel = _shopManager.GetNextLevel();
+                var currentBonus = _shopManager.GetSellBonus();
                 var nextBonus = _shopManager.GetNextLevelSellBonus();
-                effectText.text = $"升级到 Lv.{nextLevel} 后回收价 +{nextBonus * 100f:F0}%";
+                effectText.text =
+                    $"当前回收 +{currentBonus * 100f:F0}% → Lv.{nextLevel} +{nextBonus * 100f:F0}%";
                 effectText.color = NormalTextColor;
             }
         }

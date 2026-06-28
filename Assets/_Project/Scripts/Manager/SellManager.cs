@@ -1,18 +1,20 @@
 using UnityEngine;
 
 /// <summary>
-/// 售卖管理器（MVP 固定价回收 + 商店/广告加成）。
+/// 售卖管理器（MVP 固定价回收 + 商店/广告加成 + 每日目标统计）。
 /// </summary>
 public class SellManager
 {
     private readonly ShopManager _shopManager;
     private readonly GameEconomyConfig _economyConfig;
+    private readonly DailyTarget _dailyTarget;
     private float _temporaryAdBonus;
 
-    public SellManager(ShopManager shopManager, GameEconomyConfig economyConfig)
+    public SellManager(ShopManager shopManager, GameEconomyConfig economyConfig, DailyTarget dailyTarget)
     {
         _shopManager = shopManager;
         _economyConfig = economyConfig;
+        _dailyTarget = dailyTarget;
     }
 
     public int CalculateSellPrice(DurianData durian)
@@ -33,6 +35,18 @@ public class SellManager
     {
         _temporaryAdBonus = 0f;
         PlayerData.Instance.Gold += price;
+
+        if (_dailyTarget != null)
+        {
+            _dailyTarget.AddGold(price);
+        }
+
+        if (durian.variety == VarietyType.MaoShanWang)
+        {
+            PlayerProgression.Instance.MaoShanWangOpens++;
+            PlayerProgression.Instance.Save();
+        }
+
         EventBus.Publish(new DurianSoldEvent { Durian = durian, Price = price });
     }
 
@@ -41,9 +55,7 @@ public class SellManager
         _temporaryAdBonus = 0.2f;
     }
 
-    /// <summary>
-    /// 清除广告临时加成（离开售卖页未卖出时调用）。
-    /// </summary>
+    /// <summary>清除广告临时加成（离开售卖页未卖出时调用）。</summary>
     public void ClearTemporaryBonus()
     {
         _temporaryAdBonus = 0f;

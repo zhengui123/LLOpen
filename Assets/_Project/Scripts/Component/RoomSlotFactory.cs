@@ -20,7 +20,7 @@ public static class RoomSlotFactory
         var fleshImage = CreateStretchImage(root.transform, "FleshImage", raycast: false);
         fleshImage.gameObject.SetActive(false);
 
-        var coverImage = CreateStretchImage(root.transform, "CoverImage", raycast: true);
+        var coverImage = CreateStretchImage(root.transform, "CoverImage", raycast: false);
         coverImage.preserveAspect = true;
 
         var slot = root.AddComponent<RoomSlot>();

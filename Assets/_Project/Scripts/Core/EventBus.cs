@@ -27,6 +27,9 @@ public class EventBus
     /// <summary>静态 API 转发的单例引用，由构造函数赋值。</summary>
     private static EventBus _instance;
 
+    /// <summary>容器 Build 完成后为 true，供 UI 在 OnEnable 中判断是否可订阅。</summary>
+    public static bool IsReady => _instance != null;
+
     /// <summary>按事件类型缓存 Subject，键为 typeof(T)。</summary>
     private readonly Dictionary<Type, object> _subjects = new();
 

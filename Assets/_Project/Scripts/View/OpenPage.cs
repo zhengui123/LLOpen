@@ -93,7 +93,7 @@ public class OpenPage : MonoBehaviour
 
         HideActionButtons();
         HideComboDisplay();
-        DisableLegacySwipeBlockers();
+        DisableSwipeBlockers();
 
         if (durianOpener != null)
         {
@@ -111,7 +111,7 @@ public class OpenPage : MonoBehaviour
         if (guideText != null)
         {
             guideText.gameObject.SetActive(true);
-            guideText.text = "点击或上下滑动壳盖，逐房开果";
+            guideText.text = "在亮起的壳盖上划刀开果";
             StartGuidePulse();
         }
 
@@ -213,7 +213,7 @@ public class OpenPage : MonoBehaviour
 
         if (string.IsNullOrEmpty(_lastRating))
         {
-            estimateText.text = "逐房捅开壳盖 · 首房后可见好就收";
+            estimateText.text = "划刀撬开壳盖 · 首房后可见好就收";
             return;
         }
 
@@ -247,19 +247,13 @@ public class OpenPage : MonoBehaviour
         }
     }
 
-    /// <summary>v1.5 逐房开果：关闭 v1.2 划刀区域对点击的拦截。</summary>
-    private void DisableLegacySwipeBlockers()
+    /// <summary>关闭旧划刀区域射线拦截，保留 KnifeTool 启用。</summary>
+    private void DisableSwipeBlockers()
     {
         var swipeArea = transform.Find("SwipeArea")?.GetComponent<Image>();
         if (swipeArea != null)
         {
             swipeArea.raycastTarget = false;
-        }
-
-        var knifeTool = transform.Find("KnifeTool");
-        if (knifeTool != null)
-        {
-            knifeTool.gameObject.SetActive(false);
         }
 
         var crackOverlay = transform.Find("CrackOverlay")?.GetComponent<Image>();

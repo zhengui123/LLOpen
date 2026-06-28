@@ -110,7 +110,6 @@ public static class MvpSceneSetupEditor
 
         var so = new SerializedObject(page);
         so.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
-        so.FindProperty("goldIconImage").objectReferenceValue = page.transform.Find("Header/GoldIcon")?.GetComponent<Image>();
         so.FindProperty("marketFrameImage").objectReferenceValue = page.transform.Find("CardRow/MarketFrame")?.GetComponent<Image>();
         WireArray(so, "appearanceIcons", appearanceIcons);
 
@@ -135,6 +134,8 @@ public static class MvpSceneSetupEditor
                 }
             }
         }
+
+        HideMarketPageLegacyChrome(page.transform);
 
         so.ApplyModifiedPropertiesWithoutUndo();
         MarkSceneDirtySafe(page.gameObject.scene);
@@ -190,7 +191,18 @@ public static class MvpSceneSetupEditor
                     openPage.transform.Find("Rating")?.GetComponent<Text>();
                 openerSo.FindProperty("ratingCanvasGroup").objectReferenceValue =
                     openPage.transform.Find("RatingIcon")?.GetComponent<CanvasGroup>();
+                openerSo.FindProperty("knifeTool").objectReferenceValue =
+                    openPage.transform.Find("KnifeTool")?.GetComponent<KnifeTool>();
+                WireOpenPageShareButton(openPage, openerSo);
                 openerSo.ApplyModifiedPropertiesWithoutUndo();
+
+                var knife = openPage.transform.Find("KnifeTool")?.GetComponent<KnifeTool>();
+                if (knife != null)
+                {
+                    var knifeSo = new SerializedObject(knife);
+                    knifeSo.FindProperty("swipeThreshold").floatValue = 100f;
+                    knifeSo.ApplyModifiedPropertiesWithoutUndo();
+                }
             }
 
             var opSo = new SerializedObject(openPage);
@@ -283,6 +295,103 @@ public static class MvpSceneSetupEditor
         }
 
         Debug.Log("[MvpSceneSetup] Open/Bag/Sell 页 T5 引用已连线。");
+    }
+
+    [MenuItem("Tools/llopen/Wire T8 Collection Page References")]
+    public static void WireT8CollectionPageReferences()
+    {
+        if (!EnsureEditMode("Wire T8 Collection Page References"))
+        {
+            return;
+        }
+
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+        var uiRoot = Object.FindObjectOfType<GameUIRoot>(true);
+        if (uiRoot == null)
+        {
+            Debug.LogWarning("[MvpSceneSetup] 未找到 GameUIRoot。");
+            return;
+        }
+
+        var marketPage = Object.FindObjectOfType<MarketPage>(true);
+        if (marketPage != null)
+        {
+            EnsureCollectionFooterButton(marketPage.transform);
+            var mpSo = new SerializedObject(marketPage);
+            mpSo.FindProperty("collectionButton").objectReferenceValue =
+                marketPage.transform.Find("Footer/Collection")?.GetComponent<Button>();
+            mpSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        var collectionPage = Object.FindObjectOfType<CollectionPage>(true);
+        if (collectionPage == null)
+        {
+            var pageGo = BuildCollectionPage(uiRoot.transform, spriteConfig);
+            collectionPage = pageGo.GetComponent<CollectionPage>();
+            pageGo.SetActive(false);
+        }
+        else
+        {
+            EnsureCollectionPageUi(collectionPage, spriteConfig);
+            WireCollectionPageComponent(collectionPage, spriteConfig);
+        }
+
+        var uiRootSo = new SerializedObject(uiRoot);
+        uiRootSo.FindProperty("collectionPage").objectReferenceValue = collectionPage;
+        uiRootSo.ApplyModifiedPropertiesWithoutUndo();
+
+        var scope = Object.FindObjectOfType<GameLifetimeScope>(true);
+        if (scope != null)
+        {
+            var scopeSo = new SerializedObject(scope);
+            scopeSo.FindProperty("collectionPage").objectReferenceValue = collectionPage;
+            scopeSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        MarkSceneDirtySafe(uiRoot.gameObject.scene);
+        Debug.Log("[MvpSceneSetup] CollectionPage 图鉴页已创建并连线。");
+    }
+
+    [MenuItem("Tools/llopen/Wire T12 Main Shell References")]
+    public static void WireT12MainShellReferences()
+    {
+        if (!EnsureEditMode("Wire T12 Main Shell References"))
+        {
+            return;
+        }
+
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
+        var uiRoot = Object.FindObjectOfType<GameUIRoot>(true);
+        if (uiRoot == null)
+        {
+            Debug.LogWarning("[MvpSceneSetup] 未找到 GameUIRoot。");
+            return;
+        }
+
+        var shell = EnsureMainShell(uiRoot.transform, spriteConfig);
+        WireMainShellComponent(shell, spriteConfig);
+
+        var uiRootSo = new SerializedObject(uiRoot);
+        uiRootSo.FindProperty("mainShell").objectReferenceValue = shell;
+        uiRootSo.ApplyModifiedPropertiesWithoutUndo();
+
+        var marketPage = Object.FindObjectOfType<MarketPage>(true);
+        if (marketPage != null)
+        {
+            HideMarketPageLegacyChrome(marketPage.transform);
+        }
+
+        var openPage = Object.FindObjectOfType<OpenPage>(true);
+        if (openPage != null)
+        {
+            EnsureOpenPageV15Ui(openPage, spriteConfig,
+                AssetDatabase.LoadAssetAtPath<DurianRoomConfig>(JinzhengRoomConfigPath),
+                AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/RoomSlot.prefab"));
+            WireOpenPageShareButton(openPage);
+        }
+
+        MarkSceneDirtySafe(uiRoot.gameObject.scene);
+        Debug.Log("[MvpSceneSetup] MainShell 顶栏/底栏与分享按钮已连线。");
     }
 
     [MenuItem("Tools/llopen/Wire Q2 Page References")]
@@ -449,7 +558,7 @@ public static class MvpSceneSetupEditor
         fleshImage.gameObject.SetActive(false);
 
         var coverImage = CreateImage(root.transform, "CoverImage", Color.white, Vector2.zero, Vector2.one);
-        coverImage.raycastTarget = true;
+        coverImage.raycastTarget = false;
 
         var slot = root.AddComponent<RoomSlot>();
         slot.ConfigureImages(coverImage, fleshImage);
@@ -521,6 +630,15 @@ public static class MvpSceneSetupEditor
             CreateText(combo.transform, "Text", "2", 28, TextAnchor.MiddleCenter,
                 new Vector2(0.45f, 0f), new Vector2(0.95f, 1f));
             combo.gameObject.SetActive(false);
+        }
+
+        if (page.Find("ShareButtonGroup") == null)
+        {
+            var shareGroup = CreatePanel(page, "ShareButtonGroup", false,
+                new Vector2(0.28f, 0.12f), new Vector2(0.72f, 0.2f), Vector2.zero, Vector2.zero);
+            CreateButton(shareGroup.transform, "ShareButton", "炫耀一下",
+                new Vector2(0.05f, 0.1f), new Vector2(0.95f, 0.9f), new Color(0.9f, 0.45f, 0.15f));
+            shareGroup.gameObject.SetActive(false);
         }
 
         if (roomSlotPrefab == null)
@@ -722,21 +840,25 @@ public static class MvpSceneSetupEditor
 
         var uiRoot = uiRootGo.AddComponent<GameUIRoot>();
         var (marketBgImage, openBgImage) = BuildBackgroundImages(uiRootGo.transform);
+        var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
 
         var marketPage = BuildMarketPage(uiRootGo.transform);
         var openPage = BuildOpenPage(uiRootGo.transform, roomMeatPrefab, roomEmptyPrefab, floatTextPrefab);
         var sellPage = BuildSellPage(uiRootGo.transform);
         var bagPage = BuildBagPage(uiRootGo.transform, bagCardPrefab);
         var shopPage = BuildShopPage(uiRootGo.transform);
+        var collectionPage = BuildCollectionPage(uiRootGo.transform, spriteConfig);
+        var mainShell = BuildMainShell(uiRootGo.transform, spriteConfig);
 
-        WireUIRoot(uiRoot, marketPage, openPage, sellPage, bagPage, shopPage, marketBgImage, openBgImage);
-        WireGameLifetimeScope(gameRoot, uiRoot, marketPage, openPage, sellPage, bagPage, shopPage);
+        WireUIRoot(uiRoot, marketPage, openPage, sellPage, bagPage, shopPage, collectionPage, marketBgImage, openBgImage, mainShell);
+        WireGameLifetimeScope(gameRoot, uiRoot, marketPage, openPage, sellPage, bagPage, shopPage, collectionPage);
 
         marketPage.SetActive(false);
         openPage.SetActive(false);
         sellPage.SetActive(false);
         bagPage.SetActive(false);
         shopPage.SetActive(false);
+        collectionPage.SetActive(false);
     }
 
     private static void BuildLaunchScene()
@@ -770,18 +892,6 @@ public static class MvpSceneSetupEditor
         page.AddComponent<MarketPage>();
         var mp = page.GetComponent<MarketPage>();
         var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
-
-        var header = CreatePanel(page.transform, "Header", false, new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -60), new Vector2(0, 0));
-        var goldIcon = CreateImage(header.transform, "GoldIcon", Color.white,
-            new Vector2(0.02f, 0.15f), new Vector2(0.12f, 0.85f));
-        goldIcon.preserveAspect = true;
-        if (spriteConfig != null)
-        {
-            goldIcon.sprite = spriteConfig.goldCoinIcon;
-        }
-
-        var goldText = CreateText(header.transform, "GoldText", "金币 400", 28, TextAnchor.MiddleLeft);
-        Stretch(goldText.rectTransform, 80, 10, -20, -10);
 
         var varietyRow = CreatePanel(page.transform, "VarietyRow", false,
             new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -140), new Vector2(0, -70));
@@ -843,8 +953,6 @@ public static class MvpSceneSetupEditor
             EnsureAdIcon(smellButtons[i], spriteConfig);
         }
 
-        var footer = CreatePanel(page.transform, "Footer", false,
-            new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 0), new Vector2(0, 120));
         var refreshRow = CreatePanel(page.transform, "RefreshRow", false,
             new Vector2(0, 0.18f), new Vector2(1, 0.25f), Vector2.zero, Vector2.zero);
         var refreshButton = CreateButton(refreshRow.transform, "RefreshButton", "换一批（25金币）",
@@ -859,15 +967,9 @@ public static class MvpSceneSetupEditor
         }
 
         var refreshButtonText = refreshButton.transform.Find("Text")?.GetComponent<Text>();
-        var bagButton = CreateButton(footer.transform, "Bag", "背包",
-            new Vector2(0.05f, 0.2f), new Vector2(0.3f, 0.8f), new Color(0.25f, 0.55f, 0.35f));
-        var shopButton = CreateButton(footer.transform, "Shop", "商店",
-            new Vector2(0.7f, 0.2f), new Vector2(0.95f, 0.8f), new Color(0.55f, 0.3f, 0.7f));
 
         var so = new SerializedObject(mp);
         so.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
-        so.FindProperty("goldText").objectReferenceValue = goldText;
-        so.FindProperty("goldIconImage").objectReferenceValue = goldIcon;
         so.FindProperty("marketFrameImage").objectReferenceValue = marketFrame;
         so.FindProperty("varietyButtons").arraySize = 3;
         for (var i = 0; i < 3; i++) so.FindProperty("varietyButtons").GetArrayElementAtIndex(i).objectReferenceValue = varietyButtons[i];
@@ -877,8 +979,6 @@ public static class MvpSceneSetupEditor
         WireArray(so, "appearanceTexts", appearanceTexts);
         WireArray(so, "buyButtons", buyButtons);
         WireArray(so, "smellButtons", smellButtons);
-        so.FindProperty("bagButton").objectReferenceValue = bagButton;
-        so.FindProperty("shopButton").objectReferenceValue = shopButton;
         so.FindProperty("refreshButton").objectReferenceValue = refreshButton;
         so.FindProperty("refreshButtonImage").objectReferenceValue = refreshButtonImage;
         so.FindProperty("refreshButtonText").objectReferenceValue = refreshButtonText;
@@ -1001,13 +1101,12 @@ public static class MvpSceneSetupEditor
         }
 
         var knifeSo = new SerializedObject(knife);
-        knifeSo.FindProperty("durianOpener").objectReferenceValue = opener;
         knifeSo.FindProperty("swipeArea").objectReferenceValue = swipeArea.GetComponent<RectTransform>();
         knifeSo.FindProperty("targetCamera").objectReferenceValue = Camera.main;
         knifeSo.FindProperty("crackLine").objectReferenceValue = line;
         knifeSo.FindProperty("knifeImage").objectReferenceValue = knifeImage;
         knifeSo.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
-        knifeSo.FindProperty("swipeThreshold").floatValue = 200f;
+        knifeSo.FindProperty("swipeThreshold").floatValue = 100f;
         knifeSo.ApplyModifiedPropertiesWithoutUndo();
 
         var openerSo = new SerializedObject(opener);
@@ -1048,6 +1147,7 @@ public static class MvpSceneSetupEditor
             page.transform.Find("SellMidwayGroup/SellMidwayButton")?.GetComponent<Button>();
         openerSo.FindProperty("continueButton").objectReferenceValue =
             page.transform.Find("SellMidwayGroup/ContinueButton")?.GetComponent<Button>();
+        WireOpenPageShareButton(op, openerSo);
         openerSo.ApplyModifiedPropertiesWithoutUndo();
 
         return page;
@@ -1166,6 +1266,271 @@ public static class MvpSceneSetupEditor
         return page;
     }
 
+    private static GameObject BuildCollectionPage(Transform parent, DurianSpriteConfig spriteConfig)
+    {
+        var page = CreatePanel(parent, "CollectionPage", fullStretch: true);
+        page.AddComponent<CollectionPage>();
+        var cp = page.GetComponent<CollectionPage>();
+        EnsureCollectionPageUi(cp, spriteConfig);
+        WireCollectionPageComponent(cp, spriteConfig);
+        return page;
+    }
+
+    private static void EnsureCollectionPageUi(CollectionPage page, DurianSpriteConfig spriteConfig)
+    {
+        if (page == null)
+        {
+            return;
+        }
+
+        var root = page.transform;
+        var bg = root.Find("BookBg")?.GetComponent<Image>();
+        if (bg == null)
+        {
+            bg = CreateImage(root, "BookBg", new Color(0.12f, 0.1f, 0.14f, 0.95f), Vector2.zero, Vector2.one);
+            bg.transform.SetAsFirstSibling();
+            if (spriteConfig != null && spriteConfig.collectionBookBg != null)
+            {
+                bg.sprite = spriteConfig.collectionBookBg;
+                bg.color = Color.white;
+            }
+        }
+
+        if (root.Find("Title") == null)
+        {
+            CreateText(root, "Title", "榴莲图鉴", 32, TextAnchor.MiddleCenter,
+                new Vector2(0.1f, 0.86f), new Vector2(0.9f, 0.94f));
+        }
+
+        if (root.Find("ProgressText") == null)
+        {
+            CreateText(root, "ProgressText", "0/15", 24, TextAnchor.MiddleCenter,
+                new Vector2(0.65f, 0.8f), new Vector2(0.92f, 0.86f));
+        }
+
+        if (root.Find("ProgressBar") == null)
+        {
+            var barBg = CreateImage(root, "ProgressBar", new Color(0.2f, 0.2f, 0.25f, 0.9f),
+                new Vector2(0.08f, 0.8f), new Vector2(0.62f, 0.84f));
+            var fill = CreateImage(barBg.transform, "Fill", new Color(0.85f, 0.65f, 0.2f, 1f),
+                Vector2.zero, Vector2.one);
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillAmount = 0f;
+        }
+
+        if (root.Find("Back") == null)
+        {
+            var back = CreateButton(root, "Back", "返回",
+                new Vector2(0.02f, 0.92f), new Vector2(0.2f, 0.98f), new Color(0.35f, 0.35f, 0.4f));
+            EnsureBackIcon(back, spriteConfig);
+        }
+
+        var gridRoot = root.Find("GridRoot");
+        if (gridRoot == null)
+        {
+            var gridGo = new GameObject("GridRoot", typeof(RectTransform));
+            gridGo.transform.SetParent(root, false);
+            var gridRect = gridGo.GetComponent<RectTransform>();
+            gridRect.anchorMin = new Vector2(0.05f, 0.1f);
+            gridRect.anchorMax = new Vector2(0.95f, 0.76f);
+            gridRect.offsetMin = Vector2.zero;
+            gridRect.offsetMax = Vector2.zero;
+            gridRoot = gridGo.transform;
+        }
+
+        var gradeNames = new[] { "空壳", "少肉", "正常", "满肉", "爆肉" };
+        for (var g = 0; g < 5; g++)
+        {
+            var headerName = $"ColHeader_{g}";
+            if (gridRoot.Find(headerName) == null)
+            {
+                var xMin = 0.18f + g * 0.16f;
+                CreateText(gridRoot, headerName, gradeNames[g], 18, TextAnchor.MiddleCenter,
+                    new Vector2(xMin, 0.88f), new Vector2(xMin + 0.14f, 0.98f));
+            }
+        }
+
+        var varietyNames = new[] { "金枕", "干尧", "猫山王" };
+        for (var v = 0; v < 3; v++)
+        {
+            var rowName = $"RowLabel_{v}";
+            if (gridRoot.Find(rowName) == null)
+            {
+                var yMax = 0.82f - v * 0.24f;
+                var yMin = yMax - 0.2f;
+                CreateText(gridRoot, rowName, varietyNames[v], 20, TextAnchor.MiddleCenter,
+                    new Vector2(0f, yMin), new Vector2(0.16f, yMax));
+            }
+
+            var stampName = $"RowStamp_{v}";
+            if (gridRoot.Find(stampName) == null)
+            {
+                var yMax = 0.82f - v * 0.24f;
+                var yMin = yMax - 0.2f;
+                var stamp = CreateImage(gridRoot, stampName, Color.white,
+                    new Vector2(0.02f, yMin + 0.04f), new Vector2(0.14f, yMax - 0.04f));
+                stamp.preserveAspect = true;
+                stamp.gameObject.SetActive(false);
+                if (spriteConfig != null && spriteConfig.collectionCompleteStamp != null)
+                {
+                    stamp.sprite = spriteConfig.collectionCompleteStamp;
+                }
+            }
+        }
+
+        for (var v = 0; v < 3; v++)
+        {
+            for (var g = 0; g < 5; g++)
+            {
+                var index = v * 5 + g;
+                var slotName = $"Slot_{index}";
+                if (gridRoot.Find(slotName) != null)
+                {
+                    continue;
+                }
+
+                var xMin = 0.18f + g * 0.16f;
+                var yMax = 0.82f - v * 0.24f;
+                var yMin = yMax - 0.2f;
+                CreateCollectionSlotNode(gridRoot, slotName, spriteConfig,
+                    new Vector2(xMin, yMin), new Vector2(xMin + 0.14f, yMax));
+            }
+        }
+    }
+
+    private static void CreateCollectionSlotNode(
+        Transform parent,
+        string slotName,
+        DurianSpriteConfig spriteConfig,
+        Vector2 anchorMin,
+        Vector2 anchorMax)
+    {
+        var slotGo = new GameObject(slotName, typeof(RectTransform));
+        slotGo.transform.SetParent(parent, false);
+        var slotRect = slotGo.GetComponent<RectTransform>();
+        slotRect.anchorMin = anchorMin;
+        slotRect.anchorMax = anchorMax;
+        slotRect.offsetMin = Vector2.zero;
+        slotRect.offsetMax = Vector2.zero;
+
+        var slotBg = slotGo.AddComponent<Image>();
+        slotBg.color = new Color(0f, 0f, 0f, 0.25f);
+        slotBg.raycastTarget = false;
+
+        var slot = slotGo.AddComponent<CollectionSlot>();
+
+        var lockedRoot = new GameObject("LockedRoot", typeof(RectTransform));
+        lockedRoot.transform.SetParent(slotGo.transform, false);
+        StretchRect(lockedRoot.GetComponent<RectTransform>());
+        var lockedBg = CreateImage(lockedRoot.transform, "LockedBg", Color.white, Vector2.zero, Vector2.one);
+        lockedBg.raycastTarget = false;
+        if (spriteConfig != null && spriteConfig.collectionLockedSlot != null)
+        {
+            lockedBg.sprite = spriteConfig.collectionLockedSlot;
+        }
+
+        CreateText(lockedRoot.transform, "Question", "？", 26, TextAnchor.MiddleCenter,
+            Vector2.zero, Vector2.one);
+
+        var unlockedRoot = new GameObject("UnlockedRoot", typeof(RectTransform));
+        unlockedRoot.transform.SetParent(slotGo.transform, false);
+        StretchRect(unlockedRoot.GetComponent<RectTransform>());
+        unlockedRoot.gameObject.SetActive(false);
+        CreateText(unlockedRoot.transform, "InfoText", "", 16, TextAnchor.MiddleCenter,
+            new Vector2(0.05f, 0.45f), new Vector2(0.95f, 0.95f));
+        CreateText(unlockedRoot.transform, "PriceText", "", 14, TextAnchor.MiddleCenter,
+            new Vector2(0.05f, 0.05f), new Vector2(0.95f, 0.4f));
+
+        var slotSo = new SerializedObject(slot);
+        slotSo.FindProperty("lockedRoot").objectReferenceValue = lockedRoot;
+        slotSo.FindProperty("lockedBgImage").objectReferenceValue = lockedBg;
+        slotSo.FindProperty("lockedQuestionText").objectReferenceValue =
+            lockedRoot.transform.Find("Question")?.GetComponent<Text>();
+        slotSo.FindProperty("unlockedRoot").objectReferenceValue = unlockedRoot;
+        slotSo.FindProperty("infoText").objectReferenceValue =
+            unlockedRoot.transform.Find("InfoText")?.GetComponent<Text>();
+        slotSo.FindProperty("priceText").objectReferenceValue =
+            unlockedRoot.transform.Find("PriceText")?.GetComponent<Text>();
+        slotSo.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void WireCollectionPageComponent(CollectionPage page, DurianSpriteConfig spriteConfig)
+    {
+        var root = page.transform;
+        var gridRoot = root.Find("GridRoot");
+        var slots = new CollectionSlot[PlayerProgression.CollectionSlotCount];
+        if (gridRoot != null)
+        {
+            for (var i = 0; i < PlayerProgression.CollectionSlotCount; i++)
+            {
+                slots[i] = gridRoot.Find($"Slot_{i}")?.GetComponent<CollectionSlot>();
+            }
+        }
+
+        var rowStamps = new Image[3];
+        if (gridRoot != null)
+        {
+            for (var i = 0; i < 3; i++)
+            {
+                rowStamps[i] = gridRoot.Find($"RowStamp_{i}")?.GetComponent<Image>();
+            }
+        }
+
+        var progressFill = root.Find("ProgressBar/Fill")?.GetComponent<Image>();
+        var so = new SerializedObject(page);
+        so.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
+        so.FindProperty("backgroundImage").objectReferenceValue = root.Find("BookBg")?.GetComponent<Image>();
+        WireArray(so, "slots", slots);
+        so.FindProperty("progressText").objectReferenceValue = root.Find("ProgressText")?.GetComponent<Text>();
+        so.FindProperty("progressBarFill").objectReferenceValue = progressFill;
+        WireArray(so, "rowCompleteStamps", rowStamps);
+        so.FindProperty("backButton").objectReferenceValue = root.Find("Back")?.GetComponent<Button>();
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static GameObject EnsureCollectionFooterButton(Transform marketPage)
+    {
+        var footer = marketPage.Find("Footer");
+        if (footer == null)
+        {
+            return null;
+        }
+
+        var existing = footer.Find("Collection");
+        if (existing != null)
+        {
+            return existing.gameObject;
+        }
+
+        var bag = footer.Find("Bag");
+        if (bag != null)
+        {
+            var bagRect = bag.GetComponent<RectTransform>();
+            bagRect.anchorMin = new Vector2(0.05f, 0.2f);
+            bagRect.anchorMax = new Vector2(0.28f, 0.8f);
+        }
+
+        var shop = footer.Find("Shop");
+        if (shop != null)
+        {
+            var shopRect = shop.GetComponent<RectTransform>();
+            shopRect.anchorMin = new Vector2(0.72f, 0.2f);
+            shopRect.anchorMax = new Vector2(0.95f, 0.8f);
+        }
+
+        return CreateButton(footer, "Collection", "图鉴",
+            new Vector2(0.36f, 0.2f), new Vector2(0.64f, 0.8f), new Color(0.45f, 0.4f, 0.55f)).gameObject;
+    }
+
+    private static void StretchRect(RectTransform rect)
+    {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+    }
+
     private static GameObject BuildShopPage(Transform parent)
     {
         var page = CreatePanel(parent, "ShopPage", fullStretch: true);
@@ -1175,7 +1540,7 @@ public static class MvpSceneSetupEditor
 
         var level = CreateText(page.transform, "Level", "商店 Lv.1", 30, TextAnchor.MiddleCenter,
             new Vector2(0.2f, 0.7f), new Vector2(0.8f, 0.8f));
-        var effect = CreateText(page.transform, "Effect", "升级到 Lv.2 后回收价 +20%", 22, TextAnchor.MiddleCenter,
+        var effect = CreateText(page.transform, "Effect", "当前回收 +0% → Lv.2 +20%", 22, TextAnchor.MiddleCenter,
             new Vector2(0.15f, 0.55f), new Vector2(0.85f, 0.65f));
         var removeAdsCard = CreateButton(page.transform, "RemoveAdsCard", "去广告畅玩",
             new Vector2(0.12f, 0.18f), new Vector2(0.88f, 0.32f), new Color(0.25f, 0.2f, 0.45f));
@@ -1184,7 +1549,7 @@ public static class MvpSceneSetupEditor
         var badge = CreateText(removeAdsCard.transform, "Badge", "首充¥6", 20, TextAnchor.MiddleCenter,
             new Vector2(0.72f, 0.55f), new Vector2(0.98f, 0.95f));
         badge.color = new Color(1f, 0.85f, 0.35f);
-        var upgrade = CreateButton(page.transform, "Upgrade", "升级到 Lv.2（500金币）",
+        var upgrade = CreateButton(page.transform, "Upgrade", "升级商店",
             new Vector2(0.2f, 0.35f), new Vector2(0.8f, 0.48f), new Color(0.55f, 0.3f, 0.7f));
         var backBtn = CreateButton(page.transform, "Back", "返回",
             new Vector2(0.02f, 0.92f), new Vector2(0.18f, 0.98f), new Color(0.35f, 0.35f, 0.4f));
@@ -1210,7 +1575,8 @@ public static class MvpSceneSetupEditor
         GameObject open,
         GameObject sell,
         GameObject bag,
-        GameObject shop)
+        GameObject shop,
+        GameObject collection)
     {
         var scope = gameRoot.GetComponent<GameLifetimeScope>();
         var so = new SerializedObject(scope);
@@ -1220,6 +1586,7 @@ public static class MvpSceneSetupEditor
         so.FindProperty("sellPage").objectReferenceValue = sell.GetComponent<SellPage>();
         so.FindProperty("bagPage").objectReferenceValue = bag.GetComponent<BagPage>();
         so.FindProperty("shopPage").objectReferenceValue = shop.GetComponent<ShopPage>();
+        so.FindProperty("collectionPage").objectReferenceValue = collection.GetComponent<CollectionPage>();
 
         CreateDurianSpriteConfigAsset();
         var spriteConfig = AssetDatabase.LoadAssetAtPath<DurianSpriteConfig>(DurianSpriteConfigPath);
@@ -1238,8 +1605,10 @@ public static class MvpSceneSetupEditor
         GameObject sell,
         GameObject bag,
         GameObject shop,
+        GameObject collection,
         Image marketBgImage,
-        Image openBgImage)
+        Image openBgImage,
+        MainShellUI mainShell)
     {
         var so = new SerializedObject(uiRoot);
         so.FindProperty("marketBgImage").objectReferenceValue = marketBgImage;
@@ -1249,6 +1618,8 @@ public static class MvpSceneSetupEditor
         so.FindProperty("sellPage").objectReferenceValue = sell.GetComponent<SellPage>();
         so.FindProperty("bagPage").objectReferenceValue = bag.GetComponent<BagPage>();
         so.FindProperty("shopPage").objectReferenceValue = shop.GetComponent<ShopPage>();
+        so.FindProperty("collectionPage").objectReferenceValue = collection.GetComponent<CollectionPage>();
+        so.FindProperty("mainShell").objectReferenceValue = mainShell;
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -1381,6 +1752,158 @@ public static class MvpSceneSetupEditor
         }
 
         return refreshButton;
+    }
+
+    private static MainShellUI EnsureMainShell(Transform uiRoot, DurianSpriteConfig spriteConfig)
+    {
+        var existing = uiRoot.Find("MainShell")?.GetComponent<MainShellUI>();
+        if (existing != null)
+        {
+            WireMainShellComponent(existing, spriteConfig);
+            return existing;
+        }
+
+        return BuildMainShell(uiRoot, spriteConfig);
+    }
+
+    private static MainShellUI BuildMainShell(Transform parent, DurianSpriteConfig spriteConfig)
+    {
+        var shellGo = CreatePanel(parent, "MainShell", fullStretch: true);
+        var shellImage = shellGo.GetComponent<Image>();
+        if (shellImage != null)
+        {
+            shellImage.color = new Color(0f, 0f, 0f, 0f);
+            shellImage.raycastTarget = false;
+        }
+
+        var shell = shellGo.AddComponent<MainShellUI>();
+        shellGo.transform.SetAsLastSibling();
+
+        var topBar = CreatePanel(shellGo.transform, "TopBar", false,
+            new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -60), Vector2.zero);
+        SetImageColor(topBar, new Color(0f, 0f, 0f, 0.45f));
+
+        CreateText(topBar.transform, "ShopLevelText", "🛒 Lv.1", 22, TextAnchor.MiddleLeft,
+            new Vector2(0.02f, 0.1f), new Vector2(0.16f, 0.9f));
+
+        var goldIcon = CreateImage(topBar.transform, "GoldIcon", Color.white,
+            new Vector2(0.17f, 0.15f), new Vector2(0.25f, 0.85f));
+        goldIcon.preserveAspect = true;
+        if (spriteConfig != null)
+        {
+            goldIcon.sprite = spriteConfig.goldCoinIcon;
+        }
+
+        var goldText = CreateText(topBar.transform, "GoldText", "金币 400", 26, TextAnchor.MiddleLeft);
+        Stretch(goldText.rectTransform, 200, 10, 280, -10);
+
+        CreateText(topBar.transform, "DailyTargetText", "🎯 0/500", 22, TextAnchor.MiddleRight,
+            new Vector2(0.5f, 0.1f), new Vector2(0.98f, 0.9f));
+        var dailyClaim = CreateButton(topBar.transform, "DailyTargetClaim", "+50",
+            new Vector2(0.72f, 0.15f), new Vector2(0.98f, 0.85f), new Color(0.85f, 0.55f, 0.2f));
+        dailyClaim.gameObject.SetActive(false);
+
+        var navBar = CreatePanel(shellGo.transform, "NavBar", false,
+            new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, new Vector2(0, 120));
+        SetImageColor(navBar, new Color(0f, 0f, 0f, 0.55f));
+
+        CreateNavBarButton(navBar.transform, "Market", "市场", 0f, 0.2f);
+        CreateNavBarButton(navBar.transform, "Bag", "背包", 0.2f, 0.4f);
+        CreateNavBarButton(navBar.transform, "Shop", "商店", 0.4f, 0.6f);
+        CreateNavBarButton(navBar.transform, "Collection", "图鉴", 0.6f, 0.8f);
+        var questBtn = CreateNavBarButton(navBar.transform, "Quest", "任务", 0.8f, 1f);
+        CreateText(questBtn.transform, "Badge", "0/500", 16, TextAnchor.MiddleCenter,
+            new Vector2(0.62f, 0.55f), new Vector2(0.98f, 0.95f));
+
+        WireMainShellComponent(shell, spriteConfig);
+        return shell;
+    }
+
+    private static Button CreateNavBarButton(Transform parent, string name, string label, float minX, float maxX)
+    {
+        return CreateButton(parent, name, label,
+            new Vector2(minX + 0.01f, 0.15f), new Vector2(maxX - 0.01f, 0.85f),
+            new Color(0.35f, 0.45f, 0.55f));
+    }
+
+    private static void WireMainShellComponent(MainShellUI shell, DurianSpriteConfig spriteConfig)
+    {
+        if (shell == null)
+        {
+            return;
+        }
+
+        var so = new SerializedObject(shell);
+        so.FindProperty("topBar").objectReferenceValue = shell.transform.Find("TopBar")?.gameObject;
+        so.FindProperty("navBar").objectReferenceValue = shell.transform.Find("NavBar")?.gameObject;
+        so.FindProperty("shopLevelText").objectReferenceValue =
+            shell.transform.Find("TopBar/ShopLevelText")?.GetComponent<Text>();
+        so.FindProperty("goldIconImage").objectReferenceValue =
+            shell.transform.Find("TopBar/GoldIcon")?.GetComponent<Image>();
+        so.FindProperty("goldText").objectReferenceValue =
+            shell.transform.Find("TopBar/GoldText")?.GetComponent<Text>();
+        so.FindProperty("dailyTargetText").objectReferenceValue =
+            shell.transform.Find("TopBar/DailyTargetText")?.GetComponent<Text>();
+        so.FindProperty("dailyTargetClaimButton").objectReferenceValue =
+            shell.transform.Find("TopBar/DailyTargetClaim")?.GetComponent<Button>();
+        so.FindProperty("marketButton").objectReferenceValue =
+            shell.transform.Find("NavBar/Market")?.GetComponent<Button>();
+        so.FindProperty("bagButton").objectReferenceValue =
+            shell.transform.Find("NavBar/Bag")?.GetComponent<Button>();
+        so.FindProperty("shopButton").objectReferenceValue =
+            shell.transform.Find("NavBar/Shop")?.GetComponent<Button>();
+        so.FindProperty("collectionButton").objectReferenceValue =
+            shell.transform.Find("NavBar/Collection")?.GetComponent<Button>();
+        so.FindProperty("questButton").objectReferenceValue =
+            shell.transform.Find("NavBar/Quest")?.GetComponent<Button>();
+        so.FindProperty("questBadgeText").objectReferenceValue =
+            shell.transform.Find("NavBar/Quest/Badge")?.GetComponent<Text>();
+        so.FindProperty("spriteConfig").objectReferenceValue = spriteConfig;
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void HideMarketPageLegacyChrome(Transform marketPage)
+    {
+        var header = marketPage.Find("Header");
+        if (header != null)
+        {
+            header.gameObject.SetActive(false);
+        }
+
+        var footer = marketPage.Find("Footer");
+        if (footer != null)
+        {
+            footer.gameObject.SetActive(false);
+        }
+    }
+
+    private static void WireOpenPageShareButton(OpenPage openPage)
+    {
+        WireOpenPageShareButton(openPage, null);
+    }
+
+    private static void WireOpenPageShareButton(OpenPage openPage, SerializedObject openerSo)
+    {
+        if (openPage == null)
+        {
+            return;
+        }
+
+        var opener = openPage.GetComponentInChildren<DurianOpener>(true);
+        if (opener == null)
+        {
+            return;
+        }
+
+        var shareGroup = openPage.transform.Find("ShareButtonGroup");
+        var so = openerSo ?? new SerializedObject(opener);
+        so.FindProperty("shareButtonGroup").objectReferenceValue = shareGroup?.gameObject;
+        so.FindProperty("shareButton").objectReferenceValue =
+            shareGroup?.Find("ShareButton")?.GetComponent<Button>();
+        if (openerSo == null)
+        {
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
     }
 
     private static Image CreateImage(Transform parent, string name, Color color, Vector2 anchorMin, Vector2 anchorMax)

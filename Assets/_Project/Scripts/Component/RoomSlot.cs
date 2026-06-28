@@ -1,10 +1,9 @@
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
-/// 单房交互：点击或垂直滑动捅开壳盖，露出果肉。
+/// 单房展示：由 KnifeTool 划刀撬开壳盖后露出果肉。
 /// </summary>
 public class RoomSlot : MonoBehaviour
 {
@@ -14,10 +13,8 @@ public class RoomSlot : MonoBehaviour
     [SerializeField] private Image fleshImage;
 
     private bool _isOpened;
-    private bool _isDragging;
-    private float _pointerDownY;
+    private bool _knifeActive;
     private Tween _highlightTween;
-    private RoomSlotPointerRelay _pointerRelay;
 
     public bool IsOpened => _isOpened;
     public int RoomIndex { get; private set; }
@@ -29,14 +26,12 @@ public class RoomSlot : MonoBehaviour
     {
         coverImage = cover;
         fleshImage = flesh;
-        EnsurePointerRelay();
     }
 
     public void Init(int index, Sprite cover, Sprite flesh, YieldGrade grade)
     {
         RoomIndex = index;
         RoomGrade = grade;
-        EnsurePointerRelay();
 
         if (coverImage != null)
         {
@@ -46,7 +41,8 @@ public class RoomSlot : MonoBehaviour
             SetImageAlpha(coverImage, 1f);
             coverImage.rectTransform.localScale = Vector3.one;
             coverImage.rectTransform.anchoredPosition = Vector2.zero;
-            coverImage.raycastTarget = true;
+            coverImage.rectTransform.localRotation = Quaternion.identity;
+            coverImage.raycastTarget = false;
         }
 
         if (fleshImage != null)
@@ -57,7 +53,49 @@ public class RoomSlot : MonoBehaviour
         }
 
         _isOpened = false;
-        _isDragging = false;
+        _knifeActive = false;
+        SetOpenableHighlight(true);
+    }
+
+    public bool ContainsScreenPoint(Vector2 screenPosition, Camera camera)
+    {
+        if (coverImage == null || !coverImage.gameObject.activeInHierarchy)
+        {
+            return false;
+        }
+
+        return RectTransformUtility.RectangleContainsScreenPoint(
+            coverImage.rectTransform, screenPosition, camera);
+    }
+
+    public void ApplyKnifeProgress(float progress, Vector2 swipeDelta)
+    {
+        if (_isOpened || coverImage == null)
+        {
+            return;
+        }
+
+        _knifeActive = true;
+        SetOpenableHighlight(false);
+
+        var dir = swipeDelta.sqrMagnitude > 1f ? swipeDelta.normalized : Vector2.up;
+        coverImage.rectTransform.anchoredPosition = dir * progress * 28f;
+        coverImage.rectTransform.localScale = Vector3.one * (1f + progress * 0.07f);
+        coverImage.rectTransform.localRotation = Quaternion.Euler(0f, 0f, dir.x * progress * 10f);
+    }
+
+    public void ResetKnifeProgress()
+    {
+        if (_isOpened || coverImage == null || !_knifeActive)
+        {
+            return;
+        }
+
+        _knifeActive = false;
+        coverImage.rectTransform.DOKill();
+        coverImage.rectTransform.DOAnchorPos(Vector2.zero, 0.12f);
+        coverImage.rectTransform.DOScale(Vector3.one, 0.12f);
+        coverImage.rectTransform.DOLocalRotate(Vector3.zero, 0.12f);
         SetOpenableHighlight(true);
     }
 
@@ -71,7 +109,7 @@ public class RoomSlot : MonoBehaviour
         _highlightTween?.Kill();
         coverImage.rectTransform.DOKill();
 
-        if (enabled)
+        if (enabled && !_knifeActive)
         {
             coverImage.color = HighlightColor;
             _highlightTween = coverImage.rectTransform
@@ -79,65 +117,33 @@ public class RoomSlot : MonoBehaviour
                 .SetEase(Ease.InOutSine)
                 .SetLoops(-1, LoopType.Yoyo);
         }
-        else
+        else if (!enabled)
         {
             coverImage.color = Color.white;
             coverImage.rectTransform.localScale = Vector3.one;
         }
     }
 
-    internal void HandlePointerDown(PointerEventData eventData)
+    /// <summary>划刀撬开：沿滑动方向飞壳。</summary>
+    public bool TryOpenFromKnife(Vector2 swipeDelta)
     {
-        if (_isOpened)
-        {
-            return;
-        }
-
-        _pointerDownY = eventData.position.y;
-        _isDragging = true;
+        var flyDir = swipeDelta.sqrMagnitude > 1f ? swipeDelta.normalized : Vector2.up;
+        return TryOpenWithDirection(flyDir);
     }
 
-    internal void HandlePointerDrag(PointerEventData eventData)
-    {
-        if (!_isDragging || coverImage == null)
-        {
-            return;
-        }
-
-        var deltaY = eventData.position.y - _pointerDownY;
-        coverImage.rectTransform.anchoredPosition = new Vector2(0f, deltaY * 0.35f);
-    }
-
-    internal void HandlePointerUp(PointerEventData eventData)
-    {
-        if (!_isDragging)
-        {
-            return;
-        }
-
-        _isDragging = false;
-        var delta = eventData.position.y - _pointerDownY;
-
-        if (Mathf.Abs(delta) > 50f || Mathf.Abs(delta) < 10f)
-        {
-            TryOpen();
-        }
-        else if (coverImage != null)
-        {
-            coverImage.rectTransform.DOKill();
-            coverImage.rectTransform.DOAnchorPos(Vector2.zero, 0.15f);
-        }
-    }
-
-    internal void HandlePointerClick(PointerEventData eventData)
-    {
-        if (!_isOpened && !_isDragging)
-        {
-            TryOpen();
-        }
-    }
-
+    /// <summary>程序自动开房（继续开 / 中途卖），无划刀过程。</summary>
     public bool TryOpen()
+    {
+        var flyDir = Random.insideUnitCircle;
+        if (flyDir.sqrMagnitude < 0.01f)
+        {
+            flyDir = Vector2.up;
+        }
+
+        return TryOpenWithDirection(flyDir.normalized);
+    }
+
+    private bool TryOpenWithDirection(Vector2 flyDir)
     {
         if (_isOpened)
         {
@@ -145,48 +151,28 @@ public class RoomSlot : MonoBehaviour
         }
 
         _isOpened = true;
+        _knifeActive = false;
         SetOpenableHighlight(false);
 
         if (coverImage != null)
         {
             coverImage.DOKill();
-            var flyDir = coverImage.rectTransform.anchoredPosition.normalized;
-            if (flyDir.sqrMagnitude < 0.01f)
-            {
-                flyDir = Random.insideUnitCircle;
-            }
-
+            coverImage.rectTransform.DOKill();
             coverImage.rectTransform.DOAnchorPos(
-                coverImage.rectTransform.anchoredPosition + flyDir * 80f,
-                0.3f).SetEase(Ease.OutQuad);
-            coverImage.DOFade(0f, 0.2f).OnComplete(() => coverImage.gameObject.SetActive(false));
+                coverImage.rectTransform.anchoredPosition + flyDir * 90f,
+                0.32f).SetEase(Ease.OutQuad);
+            coverImage.DOFade(0f, 0.22f).OnComplete(() => coverImage.gameObject.SetActive(false));
         }
 
         if (fleshImage != null)
         {
             fleshImage.gameObject.SetActive(true);
             fleshImage.rectTransform.localScale = Vector3.zero;
-            fleshImage.rectTransform.DOScale(1f, 0.3f).SetEase(Ease.OutBack);
+            fleshImage.rectTransform.DOScale(1f, 0.32f).SetEase(Ease.OutBack);
         }
 
         OnOpened?.Invoke(this);
         return true;
-    }
-
-    private void EnsurePointerRelay()
-    {
-        if (coverImage == null)
-        {
-            return;
-        }
-
-        _pointerRelay = coverImage.GetComponent<RoomSlotPointerRelay>();
-        if (_pointerRelay == null)
-        {
-            _pointerRelay = coverImage.gameObject.AddComponent<RoomSlotPointerRelay>();
-        }
-
-        _pointerRelay.Bind(this);
     }
 
     private void OnDestroy()

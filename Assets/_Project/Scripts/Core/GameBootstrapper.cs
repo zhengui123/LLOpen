@@ -5,7 +5,7 @@ using VContainer.Unity;
 /// <summary>
 /// VContainer 启动器：在 LifetimeScope 就绪后构建容器。
 /// </summary>
-[DefaultExecutionOrder(100)]
+[DefaultExecutionOrder(-100)]
 public class GameBootstrapper : MonoBehaviour
 {
     private void Awake()
@@ -21,5 +21,7 @@ public class GameBootstrapper : MonoBehaviour
         {
             scope.Build();
         }
+
+        scope.Container.Resolve<DailyTarget>().CheckDailyReset();
     }
 }

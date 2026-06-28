@@ -70,3 +70,10 @@ public struct DurianMidwaySoldEvent
 public struct DailyTargetCompletedEvent
 {
 }
+
+public struct DailyTargetUpdatedEvent
+{
+    public int EarnedToday;
+    public bool IsCompleted;
+    public bool IsClaimed;
+}

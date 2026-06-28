@@ -10,8 +10,6 @@ using VContainer;
 public class MarketPage : MonoBehaviour
 {
     [SerializeField] private DurianSpriteConfig spriteConfig;
-    [SerializeField] private Text goldText;
-    [SerializeField] private Image goldIconImage;
     [SerializeField] private Button[] varietyButtons;
     [SerializeField] private Image marketFrameImage;
     [SerializeField] private Image[] durianImages;
@@ -20,8 +18,6 @@ public class MarketPage : MonoBehaviour
     [SerializeField] private Image[] appearanceIcons;
     [SerializeField] private Button[] buyButtons;
     [SerializeField] private Button[] smellButtons;
-    [SerializeField] private Button bagButton;
-    [SerializeField] private Button shopButton;
     [SerializeField] private Button refreshButton;
     [SerializeField] private Image refreshButtonImage;
     [SerializeField] private Text refreshButtonText;
@@ -34,7 +30,6 @@ public class MarketPage : MonoBehaviour
     private IDisposable _refreshedSub;
     private IDisposable _purchasedSub;
     private bool _initialized;
-    private int _lastGold = -1;
     private VarietyType _highlightedVariety = VarietyType.JinZheng;
 
     private static readonly Color VarietySelectedColor = new Color(1f, 0.82f, 0.35f);
@@ -66,7 +61,7 @@ public class MarketPage : MonoBehaviour
         if (_initialized)
         {
             SubscribeEvents();
-            RefreshGold();
+            UpdateRefreshButtonLabel();
             RefreshCards();
         }
     }
@@ -102,28 +97,16 @@ public class MarketPage : MonoBehaviour
         EnsureReferences();
         ApplyStaticUiSprites();
         BindButtons();
-        RefreshGold();
         UpdateRefreshButtonLabel();
         _highlightedVariety = VarietyType.JinZheng;
         _marketManager?.RefreshMarket(VarietyType.JinZheng);
         UpdateVarietyHighlight();
-        // RefreshMarket 会发事件，但 SubscribeEvents 在 Start 中更晚执行，首屏需直接刷卡片贴图
         RefreshCards();
         _initialized = true;
     }
 
     private void EnsureReferences()
     {
-        if (goldText == null)
-        {
-            goldText = transform.Find("Header/GoldText")?.GetComponent<Text>();
-        }
-
-        if (goldIconImage == null)
-        {
-            goldIconImage = transform.Find("Header/GoldIcon")?.GetComponent<Image>();
-        }
-
         if (marketFrameImage == null)
         {
             marketFrameImage = transform.Find("CardRow/MarketFrame")?.GetComponent<Image>();
@@ -166,16 +149,6 @@ public class MarketPage : MonoBehaviour
         if (appearanceIcons == null || appearanceIcons.Length == 0)
         {
             appearanceIcons = FindCardImages("AppearanceIcon");
-        }
-
-        if (bagButton == null)
-        {
-            bagButton = transform.Find("Footer/Bag")?.GetComponent<Button>();
-        }
-
-        if (shopButton == null)
-        {
-            shopButton = transform.Find("Footer/Shop")?.GetComponent<Button>();
         }
 
         if (refreshButton == null)
@@ -316,18 +289,6 @@ public class MarketPage : MonoBehaviour
                 smellButtons[i].onClick.AddListener(() => TrySmell(index));
             }
         }
-
-        if (bagButton != null)
-        {
-            bagButton.onClick.RemoveAllListeners();
-            bagButton.onClick.AddListener(() => _uiRoot.ShowBag());
-        }
-
-        if (shopButton != null)
-        {
-            shopButton.onClick.RemoveAllListeners();
-            shopButton.onClick.AddListener(() => _uiRoot.ShowShop());
-        }
     }
 
     private void OnVarietyClick(VarietyType variety)
@@ -337,8 +298,6 @@ public class MarketPage : MonoBehaviour
             return;
         }
 
-        // 切换品种：立即刷新市场（换基底贴图 D-01/D-02/D-03）
-        // 再次点击当前高亮品种：二次确认，免费重 roll 一批
         var isReselect = variety == _highlightedVariety;
         var isSwitchVariety = variety != _marketManager.CurrentVariety;
         _highlightedVariety = variety;
@@ -361,7 +320,6 @@ public class MarketPage : MonoBehaviour
         {
             if (_marketManager.TryRefreshWithGold())
             {
-                RefreshGold();
                 UpdateRefreshButtonLabel();
             }
 
@@ -458,7 +416,6 @@ public class MarketPage : MonoBehaviour
     private void OnPurchased(DurianPurchasedEvent e)
     {
         _bagManager?.AddDurian(e.Durian);
-        RefreshGold();
         _uiRoot?.ShowOpen(e.Durian);
     }
 
@@ -507,12 +464,6 @@ public class MarketPage : MonoBehaviour
             priceLabel.transform.DOPunchScale(Vector3.one * 0.2f, 0.35f, 6, 0.5f);
             priceLabel.DOColor(Color.red, 0.12f).SetLoops(4, LoopType.Yoyo);
         }
-
-        if (goldText != null)
-        {
-            goldText.rectTransform.DOKill();
-            goldText.rectTransform.DOShakeAnchorPos(0.35f, new Vector2(12f, 0f), 20, 90f, false, true);
-        }
     }
 
     private void ApplyStaticUiSprites()
@@ -520,12 +471,6 @@ public class MarketPage : MonoBehaviour
         if (spriteConfig == null)
         {
             return;
-        }
-
-        if (goldIconImage != null && spriteConfig.goldCoinIcon != null)
-        {
-            goldIconImage.sprite = spriteConfig.goldCoinIcon;
-            goldIconImage.color = Color.white;
         }
 
         if (marketFrameImage != null && spriteConfig.marketFrame != null)
@@ -575,24 +520,6 @@ public class MarketPage : MonoBehaviour
         }
     }
 
-    private void RefreshGold()
-    {
-        var gold = PlayerData.Instance.Gold;
-        if (goldText != null)
-        {
-            goldText.text = $"金币 {gold}";
-
-            if (_lastGold >= 0 && gold != _lastGold)
-            {
-                goldText.transform.DOKill();
-                goldText.transform.DOPunchScale(Vector3.one * 0.15f, 0.35f, 5, 0.5f);
-            }
-        }
-
-        _lastGold = gold;
-        UpdateRefreshButtonLabel();
-    }
-
     private void RefreshCards()
     {
         if (_marketManager == null)
@@ -600,7 +527,7 @@ public class MarketPage : MonoBehaviour
             return;
         }
 
-        RefreshGold();
+        UpdateRefreshButtonLabel();
         var durians = _marketManager.CurrentMarketDurians;
         if (durians == null || buyButtons == null)
         {
@@ -668,11 +595,6 @@ public class MarketPage : MonoBehaviour
 
     private void KillTweens()
     {
-        if (goldText != null)
-        {
-            goldText.rectTransform.DOKill();
-        }
-
         if (priceTexts != null)
         {
             foreach (var price in priceTexts)

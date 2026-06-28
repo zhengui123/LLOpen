@@ -16,6 +16,9 @@ public class DurianOpener : MonoBehaviour
     [SerializeField] private Transform roomSlotsParent;
     [SerializeField] private GameObject roomSlotPrefab;
 
+    [Header("划刀")]
+    [SerializeField] private KnifeTool knifeTool;
+
     [Header("中途卖")]
     [SerializeField] private GameObject sellMidwayGroup;
     [SerializeField] private CanvasGroup sellMidwayCanvas;
@@ -30,6 +33,7 @@ public class DurianOpener : MonoBehaviour
 
     [Header("分享（占位）")]
     [SerializeField] private GameObject shareButtonGroup;
+    [SerializeField] private Button shareButton;
 
     private StreakCounter _streakCounter;
     private ShopManager _shopManager;
@@ -74,7 +78,23 @@ public class DurianOpener : MonoBehaviour
             continueButton.onClick.AddListener(() => OpenRemainingRoomsAsync().Forget());
         }
 
+        if (shareButton == null && shareButtonGroup != null)
+        {
+            shareButton = shareButtonGroup.transform.Find("ShareButton")?.GetComponent<Button>();
+        }
+
+        if (shareButton != null)
+        {
+            shareButton.onClick.RemoveAllListeners();
+            shareButton.onClick.AddListener(OnShareClicked);
+        }
+
         HideTransientUi();
+    }
+
+    private void OnShareClicked()
+    {
+        Debug.Log("[Share] 炫耀一下 — 微信分享占位（v1.5 MVP）");
     }
 
     public void ResetVisualState()
@@ -111,6 +131,7 @@ public class DurianOpener : MonoBehaviour
 
         AssignRoomGrades(durian.yieldRate);
         SpawnRoomSlots();
+        PrepareKnifeForRooms();
 
         if (sellMidwayGroup != null)
         {
@@ -154,6 +175,7 @@ public class DurianOpener : MonoBehaviour
         }
 
         _hasSoldMidway = true;
+        knifeTool?.DisableInteraction();
         HideSellMidwayGroup();
 
         for (var i = _openedRoomCount; i < _roomSlots.Count; i++)
@@ -190,6 +212,7 @@ public class DurianOpener : MonoBehaviour
         {
             _allOpened = true;
             HideSellMidwayGroup();
+            knifeTool?.DisableInteraction();
             OnAllRoomsOpenedAsync().Forget();
         }
     }
@@ -201,10 +224,6 @@ public class DurianOpener : MonoBehaviour
         var overall = EstimateOverallGrade();
         PlayerProgression.Instance.UnlockCollection(_currentDurian.variety, overall, _lastEstimate);
         PlayerProgression.Instance.TotalOpens++;
-        if (_currentDurian.variety == VarietyType.MaoShanWang)
-        {
-            PlayerProgression.Instance.MaoShanWangOpens++;
-        }
         PlayerProgression.Instance.Save();
 
         await ShowRatingAsync(overall);
@@ -327,6 +346,25 @@ public class DurianOpener : MonoBehaviour
         }
 
         BindMidwayButtonsIfNeeded();
+        EnsureKnifeTool();
+    }
+
+    private void EnsureKnifeTool()
+    {
+        if (knifeTool == null)
+        {
+            knifeTool = transform.parent?.Find("KnifeTool")?.GetComponent<KnifeTool>();
+        }
+    }
+
+    private void PrepareKnifeForRooms()
+    {
+        EnsureKnifeTool();
+        if (knifeTool != null)
+        {
+            knifeTool.gameObject.SetActive(true);
+            knifeTool.PrepareForRooms(_roomSlots);
+        }
     }
 
     private void BindMidwayButtonsIfNeeded()
@@ -560,6 +598,7 @@ public class DurianOpener : MonoBehaviour
         _lastEstimate = 0;
         _hasSoldMidway = false;
         _allOpened = false;
+        knifeTool?.DisableInteraction();
         HideTransientUi();
 
         if (wholeDurianImage != null)

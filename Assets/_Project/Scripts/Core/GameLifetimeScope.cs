@@ -15,6 +15,7 @@ public class GameLifetimeScope : LifetimeScope
     [SerializeField] private SellPage sellPage;
     [SerializeField] private BagPage bagPage;
     [SerializeField] private ShopPage shopPage;
+    [SerializeField] private CollectionPage collectionPage;
 
     protected override void Awake()
     {
@@ -50,6 +51,7 @@ public class GameLifetimeScope : LifetimeScope
         }
 
         builder.Register<StreakCounter>(Lifetime.Singleton);
+        builder.Register<DailyTarget>(Lifetime.Singleton);
         builder.Register<DurianGeneratorSystem>(Lifetime.Singleton);
         builder.Register<MarketManager>(Lifetime.Singleton);
         builder.Register<BagManager>(Lifetime.Singleton);
@@ -63,6 +65,16 @@ public class GameLifetimeScope : LifetimeScope
         RegisterPage(builder, sellPage);
         RegisterPage(builder, bagPage);
         RegisterPage(builder, shopPage);
+        RegisterPage(builder, collectionPage);
+
+        if (uiRoot != null)
+        {
+            var shell = uiRoot.GetComponentInChildren<MainShellUI>(true);
+            if (shell != null)
+            {
+                builder.RegisterComponent(shell);
+            }
+        }
 
         if (openPage != null)
         {
@@ -115,6 +127,11 @@ public class GameLifetimeScope : LifetimeScope
         if (shopPage == null)
         {
             shopPage = FindObjectOfType<ShopPage>(true);
+        }
+
+        if (collectionPage == null)
+        {
+            collectionPage = FindObjectOfType<CollectionPage>(true);
         }
     }
 

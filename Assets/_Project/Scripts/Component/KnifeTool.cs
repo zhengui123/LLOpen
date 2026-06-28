@@ -6,12 +6,11 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 划刀交互：检测顶部滑动、绘制裂缝线，滑动距离映射开裂进度，达到阈值后触发开果。
+/// 划刀交互：在壳盖上垂直划刀，刀跟随手指、绘制裂缝线，达到阈值后撬开当前房位。
 /// </summary>
 [RequireComponent(typeof(LineRenderer))]
 public class KnifeTool : MonoBehaviour
 {
-    [SerializeField] private DurianOpener durianOpener;
     [SerializeField] private RectTransform swipeArea;
     [SerializeField] private Camera targetCamera;
     [SerializeField] private LineRenderer crackLine;
@@ -21,21 +20,21 @@ public class KnifeTool : MonoBehaviour
     [SerializeField] private float knifeFadeDuration = 0.3f;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip crackClip;
-    [SerializeField] private float swipeThreshold = 200f;
+    [SerializeField] private float swipeThreshold = 100f;
     [SerializeField] private float shakeDuration = 0.15f;
     [SerializeField] private float shakeMagnitude = 0.08f;
     [SerializeField] private float crackPulseDuration = 0.12f;
 
     private readonly List<Vector3> _crackPoints = new();
-    private DurianData _currentDurian;
+    private IReadOnlyList<RoomSlot> _roomSlots;
+    private RoomSlot _activeSlot;
     private bool _isSwiping;
-    private bool _hasOpened;
+    private bool _isCompletingSwipe;
     private Vector2 _swipeStartScreen;
-    private Vector3 _swipeStartWorld;
-    private float _swipeDistance;
+    private float _swipeVerticalDelta;
     private float _defaultLineWidth = 0.05f;
 
-    /// <summary>在滑动区域内开始划刀时触发。</summary>
+    /// <summary>在壳盖上开始划刀时触发。</summary>
     public event Action SwipeStarted;
 
     private void Awake()
@@ -59,22 +58,33 @@ public class KnifeTool : MonoBehaviour
         ResetKnifeImage();
     }
 
-    public void Setup(DurianData durian)
+    /// <summary>v1.5 逐房划刀：绑定当前榴莲的房位列表并启用交互。</summary>
+    public void PrepareForRooms(IReadOnlyList<RoomSlot> slots)
     {
         KillTweens();
-        _currentDurian = durian;
-        _hasOpened = false;
+        _roomSlots = slots;
+        _activeSlot = null;
         _isSwiping = false;
-        _swipeDistance = 0f;
+        _isCompletingSwipe = false;
+        _swipeVerticalDelta = 0f;
         ResetCrackLine();
         ResetKnifeImage();
-        // v1.5 改为 RoomSlot 逐房开果，划刀流程停用
+        enabled = true;
+    }
+
+    public void DisableInteraction()
+    {
+        _isSwiping = false;
+        _activeSlot?.ResetKnifeProgress();
+        _activeSlot = null;
+        ResetCrackLine();
+        ResetKnifeImage();
         enabled = false;
     }
 
     private void Update()
     {
-        if (_hasOpened)
+        if (_isCompletingSwipe)
         {
             return;
         }
@@ -124,41 +134,49 @@ public class KnifeTool : MonoBehaviour
 
     private void TryBeginSwipe(Vector2 screenPosition)
     {
-        if (!IsInSwipeArea(screenPosition))
+        var slot = FindSlotAtScreenPoint(screenPosition);
+        if (slot == null)
         {
             return;
         }
 
+        _activeSlot = slot;
         _isSwiping = true;
         _swipeStartScreen = screenPosition;
-        _swipeStartWorld = ScreenToWorld(screenPosition);
-        _swipeDistance = 0f;
+        _swipeVerticalDelta = 0f;
         _crackPoints.Clear();
-        _crackPoints.Add(_swipeStartWorld);
+        _crackPoints.Add(ScreenToWorld(screenPosition));
         UpdateCrackLine();
         ShowKnifeAt(screenPosition);
-        ApplyCrackProgress();
         SwipeStarted?.Invoke();
     }
 
     private void ContinueSwipe(Vector2 screenPosition)
     {
+        if (_activeSlot == null || _activeSlot.IsOpened)
+        {
+            return;
+        }
+
         UpdateKnifePosition(screenPosition);
 
-        var worldPos = ScreenToWorld(screenPosition);
-        _swipeDistance = Mathf.Abs(screenPosition.y - _swipeStartScreen.y);
+        _swipeVerticalDelta = screenPosition.y - _swipeStartScreen.y;
+        var swipeDistance = Mathf.Abs(_swipeVerticalDelta);
+        var progress = Mathf.Clamp01(swipeDistance / swipeThreshold);
+        var swipeDir = new Vector2(0f, _swipeVerticalDelta);
 
+        _activeSlot.ApplyKnifeProgress(progress, swipeDir);
+
+        var worldPos = ScreenToWorld(screenPosition);
         if (_crackPoints.Count == 0 || Vector3.Distance(_crackPoints[^1], worldPos) > 0.05f)
         {
             _crackPoints.Add(worldPos);
             UpdateCrackLine();
         }
 
-        ApplyCrackProgress();
-
-        if (_swipeDistance >= swipeThreshold)
+        if (swipeDistance >= swipeThreshold)
         {
-            CompleteSwipe().Forget();
+            CompleteSwipeForSlot().Forget();
         }
     }
 
@@ -166,43 +184,60 @@ public class KnifeTool : MonoBehaviour
     {
         _isSwiping = false;
 
-        if (_hasOpened)
+        if (_isCompletingSwipe)
         {
             return;
         }
 
-        if (_swipeDistance < swipeThreshold)
+        if (Mathf.Abs(_swipeVerticalDelta) < swipeThreshold)
         {
+            _activeSlot?.ResetKnifeProgress();
+            _activeSlot = null;
             HideKnifeImmediate();
-            return;
+            ResetCrackLine();
         }
-
-        await CompleteSwipe();
     }
 
-    private async UniTask CompleteSwipe()
+    private async UniTask CompleteSwipeForSlot()
     {
-        if (_hasOpened)
+        if (_activeSlot == null || _activeSlot.IsOpened || _isCompletingSwipe)
         {
             return;
         }
 
+        _isCompletingSwipe = true;
         _isSwiping = false;
-        _hasOpened = true;
-        enabled = false;
+
+        var swipeDir = new Vector2(0f, _swipeVerticalDelta);
+        var slot = _activeSlot;
 
         FadeOutKnife().Forget();
         PlayCrackFeedback().Forget();
 
-        if (durianOpener != null)
-        {
-            await durianOpener.OpenRemainingRoomsAsync();
-        }
+        slot.TryOpenFromKnife(swipeDir);
+
+        ResetCrackLine();
+        _activeSlot = null;
+        _isCompletingSwipe = false;
     }
 
-    private void ApplyCrackProgress()
+    private RoomSlot FindSlotAtScreenPoint(Vector2 screenPosition)
     {
-        // v1.5 已移除 CP 开裂叠加，保留空实现避免旧场景误启用划刀时报错
+        if (_roomSlots == null)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < _roomSlots.Count; i++)
+        {
+            var slot = _roomSlots[i];
+            if (slot != null && !slot.IsOpened && slot.ContainsScreenPoint(screenPosition, targetCamera))
+            {
+                return slot;
+            }
+        }
+
+        return null;
     }
 
     private async UniTaskVoid PlayCrackFeedback()
@@ -247,16 +282,6 @@ public class KnifeTool : MonoBehaviour
                 crackLine.startWidth = _defaultLineWidth;
                 crackLine.endWidth = _defaultLineWidth;
             });
-    }
-
-    private bool IsInSwipeArea(Vector2 screenPosition)
-    {
-        if (swipeArea == null)
-        {
-            return true;
-        }
-
-        return RectTransformUtility.RectangleContainsScreenPoint(swipeArea, screenPosition, targetCamera);
     }
 
     private Vector3 ScreenToWorld(Vector2 screenPosition)
