@@ -1,5 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
+using GTest.OldUI;
+using GTest.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -179,8 +181,14 @@ public static class MvpSceneSetupEditor
                     openPage.transform.Find("SellMidwayGroup")?.gameObject;
                 openerSo.FindProperty("sellMidwayCanvas").objectReferenceValue =
                     openPage.transform.Find("SellMidwayGroup")?.GetComponent<CanvasGroup>();
-                openerSo.FindProperty("sellMidwayPriceText").objectReferenceValue =
-                    openPage.transform.Find("SellMidwayGroup/PriceText")?.GetComponent<Text>();
+                var sellMidwayTransform = openPage.transform.Find("SellMidwayGroup");
+                if (sellMidwayTransform != null)
+                {
+                    openerSo.FindProperty("estimateScoreFx").objectReferenceValue =
+                        EnsureOpenEstimateScoreFx(sellMidwayTransform);
+                }
+
+                DisableCanvasLegacyScoreDemo();
                 openerSo.FindProperty("sellMidwayButton").objectReferenceValue =
                     openPage.transform.Find("SellMidwayGroup/SellMidwayButton")?.GetComponent<Button>();
                 openerSo.FindProperty("continueButton").objectReferenceValue =
@@ -394,6 +402,43 @@ public static class MvpSceneSetupEditor
         Debug.Log("[MvpSceneSetup] MainShell 顶栏/底栏与分享按钮已连线。");
     }
 
+    [MenuItem("Tools/llopen/Wire Open Estimate Score FX")]
+    public static void WireOpenEstimateScoreFxMenu()
+    {
+        if (!EnsureEditMode("Wire Open Estimate Score FX"))
+        {
+            return;
+        }
+
+        var openPage = Object.FindObjectOfType<OpenPage>(true);
+        if (openPage == null)
+        {
+            Debug.LogWarning("[MvpSceneSetup] 未找到 OpenPage。");
+            return;
+        }
+
+        var sellMidway = openPage.transform.Find("SellMidwayGroup");
+        if (sellMidway == null)
+        {
+            Debug.LogWarning("[MvpSceneSetup] OpenPage 下未找到 SellMidwayGroup。");
+            return;
+        }
+
+        var estimateFx = EnsureOpenEstimateScoreFx(sellMidway);
+        DisableCanvasLegacyScoreDemo();
+
+        var opener = openPage.GetComponentInChildren<DurianOpener>(true);
+        if (opener != null)
+        {
+            var openerSo = new SerializedObject(opener);
+            openerSo.FindProperty("estimateScoreFx").objectReferenceValue = estimateFx;
+            openerSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        MarkSceneDirtySafe(openPage.gameObject.scene);
+        Debug.Log("[MvpSceneSetup] 开果逐房估价 LegacyScoreFX 已接线。");
+    }
+
     [MenuItem("Tools/llopen/Wire Q2 Page References")]
     public static void WireQ2PageReferences()
     {
@@ -605,13 +650,17 @@ public static class MvpSceneSetupEditor
             var canvasGroup = group.gameObject.AddComponent<CanvasGroup>();
             canvasGroup.alpha = 0f;
 
-            CreateText(group.transform, "PriceText", "估价 -- 金币", 22, TextAnchor.MiddleCenter,
-                new Vector2(0.05f, 0.55f), new Vector2(0.95f, 0.95f));
+            EnsureOpenEstimateScoreFx(group.transform);
             CreateButton(group.transform, "SellMidwayButton", "见好就收",
                 new Vector2(0.05f, 0.05f), new Vector2(0.45f, 0.5f), new Color(0.85f, 0.45f, 0.1f));
             CreateButton(group.transform, "ContinueButton", "继续开",
                 new Vector2(0.55f, 0.05f), new Vector2(0.95f, 0.5f), new Color(0.35f, 0.55f, 0.75f));
+            EnsureOpenEstimateScoreFx(group.transform);
             group.gameObject.SetActive(false);
+        }
+        else
+        {
+            EnsureOpenEstimateScoreFx(page.Find("SellMidwayGroup"));
         }
 
         if (page.Find("ComboDisplay") == null)
@@ -1141,8 +1190,13 @@ public static class MvpSceneSetupEditor
             page.transform.Find("SellMidwayGroup")?.gameObject;
         openerSo.FindProperty("sellMidwayCanvas").objectReferenceValue =
             page.transform.Find("SellMidwayGroup")?.GetComponent<CanvasGroup>();
-        openerSo.FindProperty("sellMidwayPriceText").objectReferenceValue =
-            page.transform.Find("SellMidwayGroup/PriceText")?.GetComponent<Text>();
+        var midwayTransform = page.transform.Find("SellMidwayGroup");
+        if (midwayTransform != null)
+        {
+            openerSo.FindProperty("estimateScoreFx").objectReferenceValue =
+                EnsureOpenEstimateScoreFx(midwayTransform);
+        }
+
         openerSo.FindProperty("sellMidwayButton").objectReferenceValue =
             page.transform.Find("SellMidwayGroup/SellMidwayButton")?.GetComponent<Button>();
         openerSo.FindProperty("continueButton").objectReferenceValue =
@@ -1903,6 +1957,122 @@ public static class MvpSceneSetupEditor
         if (openerSo == null)
         {
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+
+    private static OpenEstimateScoreFx EnsureOpenEstimateScoreFx(Transform sellMidwayGroup)
+    {
+        var oldPrice = sellMidwayGroup.Find("PriceText");
+        if (oldPrice != null)
+        {
+            oldPrice.gameObject.SetActive(false);
+        }
+
+        var row = sellMidwayGroup.Find("EstimatePriceRow");
+        if (row == null)
+        {
+            var rowGo = CreatePanel(sellMidwayGroup, "EstimatePriceRow", false,
+                new Vector2(0.12f, 0.52f), new Vector2(0.88f, 0.96f), Vector2.zero, Vector2.zero);
+            var rowImage = rowGo.GetComponent<Image>();
+            if (rowImage != null)
+            {
+                rowImage.color = new Color(0f, 0f, 0f, 0f);
+                rowImage.raycastTarget = false;
+            }
+
+            var scoreGo = new GameObject("ScoreNumber", typeof(RectTransform), typeof(CanvasRenderer));
+            scoreGo.transform.SetParent(rowGo.transform, false);
+            var scoreRect = scoreGo.GetComponent<RectTransform>();
+            scoreRect.anchorMin = new Vector2(0.28f, 0f);
+            scoreRect.anchorMax = new Vector2(0.58f, 1f);
+            scoreRect.offsetMin = Vector2.zero;
+            scoreRect.offsetMax = Vector2.zero;
+
+            var scoreText = scoreGo.AddComponent<Text>();
+            scoreText.text = "0";
+            scoreText.fontSize = 36;
+            scoreText.font = GetDefaultFont();
+            scoreText.alignment = TextAnchor.MiddleCenter;
+            scoreText.color = Color.white;
+            scoreText.raycastTarget = false;
+            scoreText.horizontalOverflow = HorizontalWrapMode.Overflow;
+
+            scoreGo.AddComponent<LegacyScoreAnimator>();
+            scoreGo.AddComponent<LegacyScoreFXManager>();
+
+            CreateText(rowGo.transform, "CoinSuffix", "金币", 28, TextAnchor.MiddleLeft,
+                new Vector2(0.59f, 0f), new Vector2(0.88f, 1f));
+
+            rowGo.AddComponent<OpenEstimateScoreFx>();
+            row = rowGo.transform;
+        }
+
+        var scoreNumber = row.Find("ScoreNumber");
+        var manager = scoreNumber != null ? scoreNumber.GetComponent<LegacyScoreFXManager>() : null;
+        var screenShake = EnsureCanvasScreenShake();
+        if (manager != null && screenShake != null)
+        {
+            var mgrSo = new SerializedObject(manager);
+            mgrSo.FindProperty("_screenShake").objectReferenceValue = screenShake;
+            mgrSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        var estimateFx = row.GetComponent<OpenEstimateScoreFx>();
+        if (estimateFx == null)
+        {
+            estimateFx = row.gameObject.AddComponent<OpenEstimateScoreFx>();
+        }
+
+        if (manager != null)
+        {
+            var fxSo = new SerializedObject(estimateFx);
+            fxSo.FindProperty("scoreFx").objectReferenceValue = manager;
+            fxSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        return estimateFx;
+    }
+
+    private static ScreenShake EnsureCanvasScreenShake()
+    {
+        var canvas = Object.FindObjectOfType<Canvas>();
+        if (canvas == null)
+        {
+            return null;
+        }
+
+        var shake = canvas.GetComponent<ScreenShake>();
+        if (shake == null)
+        {
+            shake = canvas.gameObject.AddComponent<ScreenShake>();
+        }
+
+        var shakeSo = new SerializedObject(shake);
+        var canvasRectProp = shakeSo.FindProperty("_canvasRect");
+        if (canvasRectProp != null && canvasRectProp.objectReferenceValue == null)
+        {
+            canvasRectProp.objectReferenceValue = canvas.GetComponent<RectTransform>();
+            shakeSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        return shake;
+    }
+
+    private static void DisableCanvasLegacyScoreDemo()
+    {
+        foreach (var manager in Object.FindObjectsOfType<LegacyScoreFXManager>(true))
+        {
+            if (manager.GetComponentInParent<OpenPage>(true) != null)
+            {
+                continue;
+            }
+
+            manager.gameObject.SetActive(false);
+            var demo = manager.GetComponent<LegacyScoreAnimatorDemo>();
+            if (demo != null)
+            {
+                demo.enabled = false;
+            }
         }
     }
 

@@ -22,7 +22,7 @@ public class DurianOpener : MonoBehaviour
     [Header("中途卖")]
     [SerializeField] private GameObject sellMidwayGroup;
     [SerializeField] private CanvasGroup sellMidwayCanvas;
-    [SerializeField] private Text sellMidwayPriceText;
+    [SerializeField] private OpenEstimateScoreFx estimateScoreFx;
     [SerializeField] private Button sellMidwayButton;
     [SerializeField] private Button continueButton;
 
@@ -148,7 +148,10 @@ public class DurianOpener : MonoBehaviour
             shareButtonGroup.SetActive(false);
         }
 
-        _lastEstimate = EstimatePriceFromFullRooms(0);
+        ShowEstimatePanel();
+        SetMidwayActionButtonsVisible(false);
+        _lastEstimate = 0;
+        estimateScoreFx?.ResetEstimate(0);
     }
 
     public int GetLastEstimate() => _lastEstimate;
@@ -200,12 +203,12 @@ public class DurianOpener : MonoBehaviour
         _openedRoomCount++;
         var hasFlesh = slot.RoomGrade >= YieldGrade.High;
         _streakCounter?.OnRoomRevealed(hasFlesh);
-        UpdateEstimate();
+        RefreshEstimateDisplay(animate: true);
         RefreshOpenableHighlights();
 
         if (_openedRoomCount == 1)
         {
-            ShowSellMidwayGroup();
+            SetMidwayActionButtonsVisible(true);
         }
 
         if (_openedRoomCount >= _roomSlots.Count)
@@ -333,7 +336,7 @@ public class DurianOpener : MonoBehaviour
         {
             sellMidwayGroup = transform.parent?.Find("SellMidwayGroup")?.gameObject;
             sellMidwayCanvas = sellMidwayGroup?.GetComponent<CanvasGroup>();
-            sellMidwayPriceText = sellMidwayGroup?.transform.Find("PriceText")?.GetComponent<Text>();
+            estimateScoreFx = sellMidwayGroup?.GetComponentInChildren<OpenEstimateScoreFx>(true);
             sellMidwayButton = sellMidwayGroup?.transform.Find("SellMidwayButton")?.GetComponent<Button>();
             continueButton = sellMidwayGroup?.transform.Find("ContinueButton")?.GetComponent<Button>();
         }
@@ -462,39 +465,106 @@ public class DurianOpener : MonoBehaviour
         }
     }
 
-    private void UpdateEstimate()
+    private void RefreshEstimateDisplay(bool animate)
     {
-        var fullCount = 0;
-        for (var i = 0; i < _openedRoomCount; i++)
+        var newEstimate = CalculateEstimate();
+        if (animate)
         {
-            if (_roomGrades[i] >= YieldGrade.High)
+            estimateScoreFx?.AnimateTo(_lastEstimate, newEstimate);
+        }
+        else
+        {
+            estimateScoreFx?.ResetEstimate(newEstimate);
+        }
+
+        _lastEstimate = newEstimate;
+    }
+
+    /// <summary>
+    /// 估价 = 已开房果肉累计 + 未开房按已观测满肉比例投影（含少量波动）；未开任何房时为 0。
+    /// </summary>
+    private int CalculateEstimate()
+    {
+        if (_currentDurian.id <= 0)
+        {
+            return 0;
+        }
+
+        var openedGold = SumOpenedRoomGold();
+        var openedCount = CountOpenedRooms();
+        if (openedCount == 0)
+        {
+            return 0;
+        }
+
+        var shopMult = 1f + (_shopManager != null ? _shopManager.GetSellBonus() : 0f);
+        var remaining = 5 - openedCount;
+        var projectedGold = 0;
+
+        if (remaining > 0)
+        {
+            var fullOpened = CountOpenedFullRooms();
+            var fullRatio = (float)fullOpened / openedCount;
+            var uncertainty = remaining / 5f * Random.Range(-0.15f, 0.15f);
+            projectedGold = Mathf.RoundToInt(remaining * fullRatio * 50f * (1f + uncertainty));
+        }
+
+        return Mathf.RoundToInt((openedGold + projectedGold) * shopMult);
+    }
+
+    private int SumOpenedRoomGold()
+    {
+        var sum = 0;
+        foreach (var slot in _roomSlots)
+        {
+            if (slot != null && slot.IsOpened)
             {
-                fullCount++;
+                sum += GetGradeGoldValue(slot.RoomGrade);
             }
         }
 
-        var ratio = (float)fullCount / Mathf.Max(1, _openedRoomCount);
-        var remaining = 5 - _openedRoomCount;
-        var uncertainty = remaining / 5f * Random.Range(-0.3f, 0.3f);
-        var estFull = fullCount + remaining * ratio * (1f + uncertainty);
-        var shopBonus = _shopManager != null ? _shopManager.GetSellBonus() : 0f;
-        var estimate = Mathf.RoundToInt(estFull * 50f * (1f + shopBonus));
-
-        if (sellMidwayPriceText != null)
-        {
-            sellMidwayPriceText.text = $"{estimate} 金币";
-            sellMidwayPriceText.color = estimate >= _lastEstimate ? Color.green : Color.red;
-            sellMidwayPriceText.transform.DOKill();
-            sellMidwayPriceText.transform.DOPunchScale(Vector3.one * 0.1f, 0.15f);
-        }
-
-        _lastEstimate = estimate;
+        return sum;
     }
 
-    private int EstimatePriceFromFullRooms(int fullCount)
+    private int CountOpenedRooms()
     {
-        var shopBonus = _shopManager != null ? _shopManager.GetSellBonus() : 0f;
-        return Mathf.RoundToInt(fullCount * 50f * (1f + shopBonus));
+        var count = 0;
+        foreach (var slot in _roomSlots)
+        {
+            if (slot != null && slot.IsOpened)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private int CountOpenedFullRooms()
+    {
+        var count = 0;
+        foreach (var slot in _roomSlots)
+        {
+            if (slot != null && slot.IsOpened && slot.RoomGrade >= YieldGrade.High)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static int GetGradeGoldValue(YieldGrade grade)
+    {
+        return grade switch
+        {
+            YieldGrade.Empty => 0,
+            YieldGrade.Low => 10,
+            YieldGrade.Normal => 25,
+            YieldGrade.High => 40,
+            YieldGrade.Perfect => 50,
+            _ => 0
+        };
     }
 
     private YieldGrade EstimateOverallGrade()
@@ -553,7 +623,7 @@ public class DurianOpener : MonoBehaviour
         }
     }
 
-    private void ShowSellMidwayGroup()
+    private void ShowEstimatePanel()
     {
         if (sellMidwayGroup == null)
         {
@@ -563,13 +633,33 @@ public class DurianOpener : MonoBehaviour
         sellMidwayGroup.SetActive(true);
         if (sellMidwayCanvas != null)
         {
-            sellMidwayCanvas.alpha = 0f;
-            sellMidwayCanvas.DOFade(1f, 0.2f);
+            sellMidwayCanvas.DOKill();
+            sellMidwayCanvas.alpha = 1f;
         }
+    }
+
+    private void SetMidwayActionButtonsVisible(bool visible)
+    {
+        if (sellMidwayButton != null)
+        {
+            sellMidwayButton.gameObject.SetActive(visible);
+        }
+
+        if (continueButton != null)
+        {
+            continueButton.gameObject.SetActive(visible);
+        }
+    }
+
+    private void ShowSellMidwayGroup()
+    {
+        ShowEstimatePanel();
+        SetMidwayActionButtonsVisible(true);
     }
 
     private void HideSellMidwayGroup()
     {
+        SetMidwayActionButtonsVisible(false);
         if (sellMidwayGroup != null)
         {
             sellMidwayGroup.SetActive(false);
@@ -623,10 +713,7 @@ public class DurianOpener : MonoBehaviour
 
     private void KillTweens()
     {
-        if (sellMidwayPriceText != null)
-        {
-            sellMidwayPriceText.transform.DOKill();
-        }
+        estimateScoreFx?.StopMotion();
 
         if (sellMidwayCanvas != null)
         {
